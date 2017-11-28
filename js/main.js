@@ -29,9 +29,10 @@ game.States.preload = function() {
         game.load.image("startBtn","assets/startBtn.png",173,38);
         game.load.image("tree","assets/tree.png",142,156);
         game.load.image("dusty","assets/dusty.png",64,30);
+        game.load.image("ground","assets/platform.png",400,32);
     };
     this.create = function() {
-       // game.state.start('start');
+       //game.state.start('start');
         game.state.start('main');
     };
 };
@@ -150,14 +151,61 @@ game.States.start = function() {
 
 //主场景
 game.States.main = function() {
-    var player;
+    var player,cursors,obstacle;
+    var playerSpeed=100;
+    var playerJump=-120;
+    var gameStart=false;
     this.create = function() {
         //开启物理引擎
         game.physics.startSystem(Phaser.Physics.ARCADE);
         //启动页面背景色
         game.stage.backgroundColor="#ff9";
-        player=game.add.sprite(100,game.world.height-106,"playerwalk",0);
+        player=game.add.sprite(0,game.world.height-150,"playerwalk",2);
+        //玩家物理引擎配置
+        game.physics.arcade.enable(player);
+        player.body.collideWorldBounds=true;
+        player.body.gravity.y=150;
+        //玩家动画效果
+        var initAnimation=game.add.tween(player).to({x:50,y:game.world.height-player.height-32},1000,null,true);
+        player.animations.add("leftMove",[8,9,10,11,12]);
+        player.animations.add("rightMove",[3,4,5,6,7]);
+        //键盘监听事件
+        cursors=game.input.keyboard.createCursorKeys();
+        initAnimation.onComplete.add(function () {
+            player.frame=0;
+            gameStart=true;
+        },this);
+        //障碍物集
+        obstacle=game.add.group();
+        obstacle.enableBody=true;
+        var obstacleGround=obstacle.create(0,game.world.height-32,"ground");
+        obstacleGround.body.immovable=true;
+
     };
+    this.update =function () {
+        game.physics.arcade.collide(player,obstacle);
+        if(cursors.left.isDown){
+            if(player.body.touching.down)
+                player.animations.play("leftMove",10,true);
+            else
+                player.frame=1;
+            player.body.velocity.x=-playerSpeed;
+        }else if(cursors.right.isDown){
+            if(player.body.touching.down)
+                player.animations.play("rightMove",10,true);
+            else
+                player.frame=2;
+            player.body.velocity.x=playerSpeed;
+        }else{
+            player.animations.stop();
+            if(gameStart)
+                player.frame=0;
+            player.body.velocity.x=0;
+        };
+        if(cursors.up.isDown&&player.body.touching.down){
+            player.body.velocity.y=playerJump;
+        }
+    }
 };
 
 //添加场景
