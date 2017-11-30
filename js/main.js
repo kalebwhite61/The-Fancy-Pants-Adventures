@@ -83,11 +83,11 @@ game.States.start = function() {
             tweenIn.start();
         }
         //组标题整体居中
-        title.x=game.world.centerX-252;
+        title.x=game.world.centerX-252
         //玩家精灵添加
         player=game.add.sprite(-100,240,"playerwalk",0);
         //使能玩家精灵物理引擎
-        game.physics.arcade.enable(player);
+        game.physics.arcade.enable(player);;
         //玩家移动动画
         player.animations.add("startMove",[3,4,5,6,7]);
         player.animations.play("startMove",10,true);
@@ -192,13 +192,13 @@ game.States.main = function() {
         obstacleHorizontalMove=game.add.group();
         obstacleHorizontalMove.enableBody=true;
         var obstacleGround=obstacleHorizontalMove.create(0,game.world.height-32,"ground");
-        obstacleGround.movestyle="horizontal";//扩展对象属性，添加移动方式为水平运动
+        obstacleGround.movestyle="horizontal";
         obstacleGround.body.immovable=true;
 
         //垂直移动障碍物集
         obstacleVerticalMove=game.add.group();
         obstacleVerticalMove.enableBody=true;
-       var obstacleGround1=obstacleVerticalMove.create(300,game.world.height-100,"ground");
+       var obstacleGround1=obstacleVerticalMove.create(500,game.world.height-32,"ground");
         obstacleGround1.movestyle="vertical";//扩展对象属性，添加移动方式为垂直运动
         obstacleGround1.body.immovable=true;
 
@@ -222,13 +222,13 @@ game.States.main = function() {
         //启动物体垂直运动动画
         for(var i=0;i<obstacleVerticalMove.length;i++)
             game.add.tween(obstacleVerticalMove.getChildAt(i)).to({y:game.world.height-200},2000,null,true,0,Number.MAX_VALUE,true);
-    };
+     };
     this.update =function () {
         game.physics.arcade.collide(player, layer,null);
         game.physics.arcade.overlap(player,obstacleHorizontalMove,this.syncMove);
-        game.physics.arcade.collide(player,obstacleVerticalMove,this.syncMove);
-        // if(!obFlag)
-        //     player.body.gravity.y=150;
+       var obFlag= game.physics.arcade.overlap(player,obstacleVerticalMove,this.syncMove);
+        if(!obFlag)
+            player.body.gravity.y=150;
         if(cursors.left.isDown){
             if(player.body.touching.down||player.body.onFloor())
                 player.animations.play("leftMove",10,true);
@@ -259,8 +259,7 @@ game.States.main = function() {
                 break;
             case "vertical":
                 obj1.body.gravity.y=0;
-                obj1.body.velocity.y=0;
-                obj1.y+=obj2.y-obj2.previousPosition.y;
+                obj1.y=obj2.y-obj1.height;
                 break;
             default:
                 break;
