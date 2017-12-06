@@ -1,4 +1,4 @@
-var game = new Phaser.Game(800, 600, Phaser.CANVAS, 'game');
+var game = new Phaser.Game(800, 608, Phaser.CANVAS, 'game');
 
 game.States = {};
 
@@ -37,22 +37,68 @@ game.States.preload = function() {
     };
     this.create = function() {
         //game.state.start('start');
-        game.state.start('main');
-        //game.state.start('test');
+        //game.state.start('main');
+       game.state.start('test');
     };
 };
 
 //功能测试页面
 game.States.test=function(){
-    var map;
-    var layer;
-    this.create=function () {
-        map = game.add.tilemap('matchmanMap');
-        map.addTilesetImage('elementSet', 'tilePic');
-        layer = map.createLayer('GameWorld');
-    }
-}
+    var player,cursors,hill2;
+    var obstacle;
+    var p2Hill;
+    this.create = function() {
+        //开启P2JS物理引擎
+        game.physics.startSystem(Phaser.Physics.P2JS);
+        //启动页面背景色
+        game.stage.backgroundColor="#ff9";
+        player=game.add.sprite(50,game.world.height-150,"playerwalk",2);
+        //玩家物理引擎配置
+        game.physics.p2.enable(player);
+        player.animations.add("leftMove",[8,9,10,11,12]);
+        player.animations.add("rightMove",[3,4,5,6,7]);
+        player.body.setZeroDamping();
+        player.body.fixedRotation = true;
 
+        //键盘监听事件
+        cursors=game.input.keyboard.createCursorKeys();
+        p2Hill=game.add.sprite(400,game.world.height-165,"ground");
+        game.physics.p2.enable(p2Hill);
+        p2Hill.body.angle=-50;
+        p2Hill.body.setZeroDamping();
+       // p2Hill.body.motionState=Phaser.Physics.P2.Body.DYNAMIC;
+        //p2Hill.body.motionState=Phaser.Physics.P2.Body.STATIC;
+        p2Hill.body.motionState=Phaser.Physics.P2.Body.KINEMATIC;
+        //player.body.setSize(100,100);
+
+    };
+    this.update =function () {
+        player.body.setZeroVelocity();
+        player.body.setZeroForce();
+        if (cursors.left.isDown)
+        {
+            player.body.moveLeft(200);
+            player.play("leftMove");
+        }
+        else if (cursors.right.isDown)
+        {
+            player.body.moveRight(200);
+            player.play("rightMove");
+        }
+        if (cursors.up.isDown)
+        {
+            player.body.moveUp(400);
+        }
+        else if (cursors.down.isDown)
+        {
+            player.body.moveDown(400);
+        }
+    };
+    this.render=function(){
+
+    }
+};
+//
 //开始页面
 game.States.start = function() {
     var player,playerWalk,playerRun,title,startBtn,dusty;
@@ -83,11 +129,11 @@ game.States.start = function() {
             tweenIn.start();
         }
         //组标题整体居中
-        title.x=game.world.centerX-252
+        title.x=game.world.centerX-252;
         //玩家精灵添加
         player=game.add.sprite(-100,240,"playerwalk",0);
         //使能玩家精灵物理引擎
-        game.physics.arcade.enable(player);;
+        game.physics.arcade.enable(player);
         //玩家移动动画
         player.animations.add("startMove",[3,4,5,6,7]);
         player.animations.play("startMove",10,true);
@@ -169,8 +215,9 @@ game.States.start = function() {
 game.States.main = function() {
     var player,cursors,map,layer;
     var obstacleHorizontalMove,obstacleVerticalMove;
-    var playerSpeed=100;
+    var playerSpeed=120;
     var playerJump=-180;
+    var gravity=180;
     var playerMove=false;
     this.create = function() {
         //开启物理引擎
@@ -179,6 +226,8 @@ game.States.main = function() {
         map = game.add.tilemap('matchmanMap');
         map.addTilesetImage('elementSet', 'tilePic');
         layer = map.createLayer('GameWorld');
+        //根据地图大小，重新设置游戏世界大小
+        layer.resizeWorld();
         // 设置tile碰撞
         map.setCollisionBetween(13, 17);
         map.setCollisionBetween(20, 25);
@@ -191,21 +240,26 @@ game.States.main = function() {
         //水平移动障碍物集
         obstacleHorizontalMove=game.add.group();
         obstacleHorizontalMove.enableBody=true;
-        var obstacleGround=obstacleHorizontalMove.create(0,game.world.height-32,"ground");
+        var obstacleGround=obstacleHorizontalMove.create(32,game.world.height-64,"ground");
         obstacleGround.movestyle="horizontal";
         obstacleGround.body.immovable=true;
-
+        for(var i=0;i<obstacleHorizontalMove.length;i++)
+            game.add.tween(obstacleHorizontalMove.getChildAt(i)).to({x:150},2000,null,true,0,-1,true);
         //垂直移动障碍物集
         obstacleVerticalMove=game.add.group();
         obstacleVerticalMove.enableBody=true;
-       var obstacleGround1=obstacleVerticalMove.create(500,game.world.height-32,"ground");
+        var obstacleGround1=obstacleVerticalMove.create(550,game.world.height-108,"ground");
         obstacleGround1.movestyle="vertical";//扩展对象属性，添加移动方式为垂直运动
+        obstacleGround1.movespeed=70;//扩展对象属性，添加移动速度
         obstacleGround1.body.immovable=true;
-
+        for(var i=0;i<obstacleVerticalMove.length;i++)
+            game.add.tween(obstacleVerticalMove.getChildAt(i)).to({y:400},2000,null,true,0,-1,true);
         //玩家物理引擎配置
         game.physics.arcade.enable(player);
         player.body.collideWorldBounds=true;
-        player.body.gravity.y=150;
+        player.body.gravity.y=gravity;
+        //摄像机跟随
+        game.camera.follow(player);
         //玩家动画效果
         var initAnimation=game.add.tween(player).to({x:50,y:game.world.height-player.height-32},1000,null,true);
         player.animations.add("leftMove",[8,9,10,11,12]);
@@ -216,19 +270,11 @@ game.States.main = function() {
             player.frame=0;
             playerMove=true;
         },this);
-        //启动物体水平运动动画
-        for(var i=0;i<obstacleHorizontalMove.length;i++)
-            game.add.tween(obstacleHorizontalMove.getChildAt(i)).to({x:50},2000,null,true,0,Number.MAX_VALUE,true);
-        //启动物体垂直运动动画
-        for(var i=0;i<obstacleVerticalMove.length;i++)
-            game.add.tween(obstacleVerticalMove.getChildAt(i)).to({y:game.world.height-200},2000,null,true,0,Number.MAX_VALUE,true);
      };
     this.update =function () {
         game.physics.arcade.collide(player, layer,null);
-        game.physics.arcade.overlap(player,obstacleHorizontalMove,this.syncMove);
-       var obFlag= game.physics.arcade.overlap(player,obstacleVerticalMove,this.syncMove);
-        if(!obFlag)
-            player.body.gravity.y=150;
+        game.physics.arcade.collide(player,obstacleHorizontalMove,this.syncMove);
+        game.physics.arcade.collide(player,obstacleVerticalMove,this.syncMove);
         if(cursors.left.isDown){
             if(player.body.touching.down||player.body.onFloor())
                 player.animations.play("leftMove",10,true);
@@ -252,18 +298,10 @@ game.States.main = function() {
         };
     };
     this.syncMove=function (obj1,obj2) {
-        switch (obj2.movestyle){
-            case "horizontal":
-                obj1.y=obj2.y-obj1.height;
-                obj1.x+=obj2.x-obj2.previousPosition.x;
-                break;
-            case "vertical":
-                obj1.body.gravity.y=0;
-                obj1.y=obj2.y-obj1.height;
-                break;
-            default:
-                break;
-        }
+        if(obj2.movestyle=="vertical")
+            obj1.body.velocity.y=obj2.movespeed;
+        obj1.x+=obj2.x-obj2.previousPosition.x;
+
     }
 };
 

@@ -171,7 +171,8 @@ game.States.main = function() {
     var obstacleHorizontalMove,obstacleVerticalMove;
     var playerSpeed=100;
     var playerJump=-180;
-    var gameStart=false;
+    var gravity=180;
+    var playerMove=false;
     this.create = function() {
         //开启物理引擎
         game.physics.startSystem(Phaser.Physics.ARCADE);
@@ -191,21 +192,20 @@ game.States.main = function() {
         //水平移动障碍物集
         obstacleHorizontalMove=game.add.group();
         obstacleHorizontalMove.enableBody=true;
-        var obstacleGround=obstacleHorizontalMove.create(0,game.world.height-32,"ground");
-        obstacleGround.movestyle="horizontal";//扩展对象属性，添加移动方式为水平运动
+        var obstacleGround=obstacleHorizontalMove.create(32,game.world.height-32,"ground");
+        obstacleGround.movestyle="horizontal";
         obstacleGround.body.immovable=true;
-
         //垂直移动障碍物集
         obstacleVerticalMove=game.add.group();
         obstacleVerticalMove.enableBody=true;
-        obstacleGround=obstacleVerticalMove.create(300,game.world.height-100,"ground");
-        obstacleGround.movestyle="vertical";//扩展对象属性，添加移动方式为垂直运动
-        obstacleGround.body.immovable=true;
-
+        var obstacleGround1=obstacleVerticalMove.create(550,game.world.height-100,"ground");
+        obstacleGround1.movestyle="vertical";//扩展对象属性，添加移动方式为垂直运动
+        obstacleGround1.movespeed=70;//扩展对象属性，添加移动速度
+        obstacleGround1.body.immovable=true;
         //玩家物理引擎配置
         game.physics.arcade.enable(player);
         player.body.collideWorldBounds=true;
-        player.body.gravity.y=150;
+        player.body.gravity.y=gravity;
         //玩家动画效果
         var initAnimation=game.add.tween(player).to({x:50,y:game.world.height-player.height-32},1000,null,true);
         player.animations.add("leftMove",[8,9,10,11,12]);
@@ -214,21 +214,21 @@ game.States.main = function() {
         cursors=game.input.keyboard.createCursorKeys();
         initAnimation.onComplete.add(function () {
             player.frame=0;
-            gameStart=true;
+            playerMove=true;
         },this);
-        //启动物体水平运动动画
-        for(var i=0;i<obstacleHorizontalMove.length;i++)
-            game.add.tween(obstacleHorizontalMove.getChildAt(i)).to({x:50},2000,null,true,0,Number.MAX_VALUE,true);
-        //启动物体垂直运动动画
-        for(var i=0;i<obstacleVerticalMove.length;i++)
-            game.add.tween(obstacleGround).to({y:game.world.height-200},2000,null,true,0,Number.MAX_VALUE,true);
     };
     this.update =function () {
         game.physics.arcade.collide(player, layer,null);
-        game.physics.arcade.overlap(player,obstacleHorizontalMove,this.syncMove);
-        var obFlag=game.physics.arcade.overlap(player,obstacleVerticalMove,this.syncMove);
-        if(!obFlag)
-            player.body.gravity.y=150;
+        game.physics.arcade.collide(player,obstacleHorizontalMove,this.syncMove);
+        game.physics.arcade.collide(player,obstacleVerticalMove,this.syncMove);
+        if(obstacleHorizontalMove.getChildAt(0).x<=32)
+            obstacleHorizontalMove.getChildAt(0).body.velocity.x=50;
+        if(obstacleHorizontalMove.getChildAt(0).x>=150)
+            obstacleHorizontalMove.getChildAt(0).body.velocity.x=-50;
+        if(obstacleVerticalMove.getChildAt(0).y>=game.world.height-100)
+            obstacleVerticalMove.getChildAt(0).body.velocity.y=-obstacleVerticalMove.getChildAt(0).movespeed;
+        if(obstacleVerticalMove.getChildAt(0).y<=400)
+            obstacleVerticalMove.getChildAt(0).body.velocity.y=obstacleVerticalMove.getChildAt(0).movespeed;
         if(cursors.left.isDown){
             if(player.body.touching.down||player.body.onFloor())
                 player.animations.play("leftMove",10,true);
@@ -243,7 +243,7 @@ game.States.main = function() {
             player.body.velocity.x=playerSpeed;
         }else{
             player.animations.stop();
-            if(gameStart)
+            if(playerMove)
                 player.frame=0;
             player.body.velocity.x=0;
         };
@@ -252,19 +252,8 @@ game.States.main = function() {
         };
     };
     this.syncMove=function (obj1,obj2) {
-        switch (obj2.movestyle){
-            case "horizontal":
-                obj1.y=obj2.y-obj1.height;
-                obj1.x+=obj2.x-obj2.previousPosition.x;
-                break;
-            case "vertical":
-                obj1.body.gravity.y=0;
-                obj1.body.velocity.y=0;
-                obj1.y=obj2.y-obj1.height+1;
-                break;
-            default:
-                break;
-        }
+        if(obj2.movestyle=="vertical")
+            obj1.body.velocity.y=obj2.movespeed;
     }
 };
 
