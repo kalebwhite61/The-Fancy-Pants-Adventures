@@ -57,24 +57,23 @@ game.States.test=function(){
         game.physics.p2.enable(player);
         player.animations.add("leftMove",[8,9,10,11,12]);
         player.animations.add("rightMove",[3,4,5,6,7]);
-        player.body.setZeroDamping();
-        player.body.fixedRotation = true;
-
+        player.body.fixedRotation=true;
         //键盘监听事件
         cursors=game.input.keyboard.createCursorKeys();
         p2Hill=game.add.sprite(400,game.world.height-165,"ground");
         game.physics.p2.enable(p2Hill);
         p2Hill.body.angle=-50;
-        p2Hill.body.setZeroDamping();
        // p2Hill.body.motionState=Phaser.Physics.P2.Body.DYNAMIC;
-        //p2Hill.body.motionState=Phaser.Physics.P2.Body.STATIC;
-        p2Hill.body.motionState=Phaser.Physics.P2.Body.KINEMATIC;
+        p2Hill.body.motionState=Phaser.Physics.P2.Body.STATIC;
+       // p2Hill.body.motionState=Phaser.Physics.P2.Body.KINEMATIC;
         //player.body.setSize(100,100);
+        p2Hill.body.kinematic=true;
+
+        player.body.angle=-50;
 
     };
     this.update =function () {
         player.body.setZeroVelocity();
-        player.body.setZeroForce();
         if (cursors.left.isDown)
         {
             player.body.moveLeft(200);
@@ -84,6 +83,8 @@ game.States.test=function(){
         {
             player.body.moveRight(200);
             player.play("rightMove");
+        }else{
+            player.frame=0;
         }
         if (cursors.up.isDown)
         {
