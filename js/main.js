@@ -26,6 +26,7 @@ game.States.preload = function() {
         game.load.spritesheet("theme","assets/character.png",63,100);
         game.load.spritesheet("playerwalk","assets/walkset.png",31.666,48);
         game.load.spritesheet("playerrun","assets/runset.png",41.333,45);
+        game.load.spritesheet("belt","assets/belt.png",263,32);
         game.load.image("startBtn","assets/startBtn.png",173,38);
         game.load.image("tree","assets/tree.png",142,156);
         game.load.image("dusty","assets/dusty.png",64,30);
@@ -42,8 +43,8 @@ game.States.preload = function() {
     };
 };
 
-//功能测试页面
-game.States.test=function(){
+//P2引擎测试页面
+game.States.P2World=function(){
     var player,cursors,hill2;
     var obstacle;
     var p2Hill;
@@ -77,12 +78,12 @@ game.States.test=function(){
         if (cursors.left.isDown)
         {
             player.body.moveLeft(200);
-            player.play("leftMove");
+            player.play("leftMove",15,true);
         }
         else if (cursors.right.isDown)
         {
             player.body.moveRight(200);
-            player.play("rightMove");
+            player.play("rightMove",15,true);
         }else{
             player.frame=0;
         }
@@ -99,7 +100,77 @@ game.States.test=function(){
 
     }
 };
-//
+//Arcade功能测试页面
+game.States.test=function(){
+    var player,cursors,layer,belt;
+    var rightFlag=false;
+    var playerSpeed=120;
+    var playerJump=-180;
+    var gravity=180;
+    var playerMove=false;
+    this.create = function() {
+        //开启物理引擎
+        game.physics.startSystem(Phaser.Physics.ARCADE);
+        //启动页面背景色
+        game.stage.backgroundColor="#ff9";
+        //传送带动画
+        belt=game.add.sprite(game.world.width/2-132,game.world.height-32,"belt",0);
+        belt.animations.add("belt_move");
+        belt.animations.play("belt_move",32,true);
+        game.physics.arcade.enable(belt);
+        belt.body.immovable=true;
+
+        player=game.add.sprite(0,game.world.height-150,"playerwalk",2);
+        //玩家物理引擎配置
+        game.physics.arcade.enable(player);
+        player.body.collideWorldBounds=true;
+        player.body.gravity.y=gravity;
+        //玩家动画效果
+        player.animations.add("leftMove",[8,9,10,11,12]);
+        player.animations.add("rightMove",[3,4,5,6,7]);
+        //键盘监听事件
+        cursors=game.input.keyboard.createCursorKeys();
+        player.frame=0;
+        playerMove=true;
+    };
+    this.update =function () {
+        game.physics.arcade.collide(player, layer,null);
+        game.physics.arcade.collide(player,belt,this.beltMove);
+        if(player.y==game.world.height-48)
+            rightFlag=false;
+        if(cursors.left.isDown){
+            if(player.body.touching.down||player.body.onFloor())
+                player.animations.play("leftMove",10,true);
+            else
+                player.frame=1;
+            player.body.velocity.x=-playerSpeed;
+            if(rightFlag)
+                player.body.velocity.x+=playerSpeed/2;
+        }else if(cursors.right.isDown){
+            if(player.body.touching.down||player.body.onFloor())
+                player.animations.play("rightMove",10,true);
+            else
+                player.frame=2;
+            player.body.velocity.x=playerSpeed;
+            if(rightFlag)
+                player.body.velocity.x+=playerSpeed/2;
+        }else{
+            player.animations.stop();
+            if(playerMove)
+                player.frame=0;
+            player.body.velocity.x=0;
+            if(rightFlag)
+                player.body.velocity.x=playerSpeed;
+
+        };
+        if(cursors.up.isDown&&(player.body.touching.down||player.body.onFloor())){
+            player.body.velocity.y=playerJump;
+        };
+    };
+    this.beltMove=function () {
+        rightFlag=true;
+    }
+}
 //开始页面
 game.States.start = function() {
     var player,playerWalk,playerRun,title,startBtn,dusty;
@@ -302,7 +373,6 @@ game.States.main = function() {
         if(obj2.movestyle=="vertical")
             obj1.body.velocity.y=obj2.movespeed;
         obj1.x+=obj2.x-obj2.previousPosition.x;
-
     }
 };
 
