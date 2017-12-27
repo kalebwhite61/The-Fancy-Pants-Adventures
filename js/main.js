@@ -40,7 +40,7 @@ game.States.preload = function() {
     this.create = function() {
         //game.state.start('start');
         //game.state.start('main');
-       game.state.start('test');
+        game.state.start('test');
     };
 };
 //P2引擎测试页面
@@ -102,29 +102,21 @@ game.States.P2World=function(){
 };
 //Arcade功能测试页面
 game.States.test=function(){
-    var player,cursors,layer,belt,belt2;
+    var player,cursors,layer,rope;
     var playerSpeed=120;
     var playerJump=-180;
     var gravity=180;
     var playerMove=false;
-    var beltStop=true;
+
     this.create = function() {
         //开启物理引擎
         game.physics.startSystem(Phaser.Physics.ARCADE);
         //启动页面背景色
         game.stage.backgroundColor="#ff9";
-        //传送带动画
-        belt=game.add.sprite(game.world.width/2-200,game.world.height-32,"belt",0);
-        belt.animations.add("belt_move");
-        belt.animations.play("belt_move",32,true);
-        game.physics.arcade.enable(belt);
-        belt.body.immovable=true;
-
-        belt2=game.add.sprite(game.world.width/2+100,game.world.height-64,"belt",0);
-        belt2.animations.add("belt_move_left").reverse();
-        belt2.animations.play("belt_move_left",32,true);
-        game.physics.arcade.enable(belt2);
-        belt2.body.immovable=true;
+        //摆动的绳子
+        rope=game.add.sprite(game.world.centerX,game.world.centerY,"ground");
+        rope.anchor.setTo(0.5,0.5);
+        rope.angle=90;
 
         player=game.add.sprite(0,game.world.height-150,"playerwalk",2);
         //玩家物理引擎配置
@@ -141,47 +133,35 @@ game.States.test=function(){
     };
     this.update =function () {
         game.physics.arcade.collide(player, layer,null);
-       var beltAction=game.physics.arcade.collide(player,belt);
-       var beltLeftAction=game.physics.arcade.collide(player,belt2);
 
+        rope.angle+=1;
         if(cursors.left.isDown){
             if(player.body.touching.down||player.body.onFloor())
                 player.animations.play("leftMove",10,true);
             else
                 player.frame=1;
             player.body.velocity.x=-playerSpeed;
-            if(beltAction)
-                player.body.velocity.x+=playerSpeed/2;
-            if(beltLeftAction)
-                player.body.velocity.x-=playerSpeed/2;
+
         }else if(cursors.right.isDown){
             if(player.body.touching.down||player.body.onFloor())
                 player.animations.play("rightMove",10,true);
             else
                 player.frame=2;
             player.body.velocity.x=playerSpeed;
-            if(beltAction)
-                player.body.velocity.x+=playerSpeed/2;
-            if(beltLeftAction)
-                player.body.velocity.x-=playerSpeed/2
         }else{
             player.animations.stop();
             if(playerMove)
                 player.frame=0;
             player.body.velocity.x=0;
-            if(beltAction)
-                player.body.velocity.x=playerSpeed*0.8;
-            if(beltLeftAction)
-                player.body.velocity.x=-playerSpeed*0.8;
         };
         if(cursors.up.isDown&&(player.body.touching.down||player.body.onFloor())){
             player.body.velocity.y=playerJump;
         };
-        if(player.body.touching.down||player.body.onFloor()){
-            beltStop=false;
-        }
 
     };
+    this.render=function() {
+        game.debug.spriteInfo(rope, 32, 32,"black");
+    }
 
 }
 //开始页面
@@ -298,12 +278,13 @@ game.States.start = function() {
 
 //主场景
 game.States.main = function() {
-    var player,cursors,map,layer;
+    var player,cursors,map,layer,belt,belt2;
     var obstacleHorizontalMove,obstacleVerticalMove;
     var playerSpeed=120;
     var playerJump=-180;
     var gravity=180;
     var playerMove=false;
+    var beltStop=true;
     this.create = function() {
         //开启物理引擎
         game.physics.startSystem(Phaser.Physics.ARCADE);
@@ -339,6 +320,20 @@ game.States.main = function() {
         obstacleGround1.body.immovable=true;
         for(var i=0;i<obstacleVerticalMove.length;i++)
             game.add.tween(obstacleVerticalMove.getChildAt(i)).to({y:400},2000,null,true,0,-1,true);
+
+        //传送带动画
+        belt=game.add.sprite(game.world.width/2-200,game.world.height-64,"belt",0);
+        belt.animations.add("belt_move");
+        belt.animations.play("belt_move",32,true);
+        game.physics.arcade.enable(belt);
+        belt.body.immovable=true;
+
+        belt2=game.add.sprite(game.world.width/2+100,game.world.height-96,"belt",0);
+        belt2.animations.add("belt_move_left").reverse();
+        belt2.animations.play("belt_move_left",32,true);
+        game.physics.arcade.enable(belt2);
+        belt2.body.immovable=true;
+
         //玩家物理引擎配置
         game.physics.arcade.enable(player);
         player.body.collideWorldBounds=true;
@@ -360,27 +355,44 @@ game.States.main = function() {
         game.physics.arcade.collide(player, layer,null);
         game.physics.arcade.collide(player,obstacleHorizontalMove,this.syncMove);
         game.physics.arcade.collide(player,obstacleVerticalMove,this.syncMove);
+        var beltAction=game.physics.arcade.collide(player,belt);
+        var beltLeftAction=game.physics.arcade.collide(player,belt2);
         if(cursors.left.isDown){
             if(player.body.touching.down||player.body.onFloor())
                 player.animations.play("leftMove",10,true);
             else
                 player.frame=1;
             player.body.velocity.x=-playerSpeed;
+            if(beltAction)
+                player.body.velocity.x+=playerSpeed/2;
+            if(beltLeftAction)
+                player.body.velocity.x-=playerSpeed/2;
         }else if(cursors.right.isDown){
             if(player.body.touching.down||player.body.onFloor())
                 player.animations.play("rightMove",10,true);
             else
                 player.frame=2;
             player.body.velocity.x=playerSpeed;
+            if(beltAction)
+                player.body.velocity.x+=playerSpeed/2;
+            if(beltLeftAction)
+                player.body.velocity.x-=playerSpeed/2;
         }else{
             player.animations.stop();
             if(playerMove)
                 player.frame=0;
             player.body.velocity.x=0;
+            if(beltAction)
+                player.body.velocity.x+=playerSpeed/2;
+            if(beltLeftAction)
+                player.body.velocity.x-=playerSpeed/2;
         };
         if(cursors.up.isDown&&(player.body.touching.down||player.body.onFloor())){
             player.body.velocity.y=playerJump;
         };
+        if(player.body.touching.down||player.body.onFloor()){
+            beltStop=false;
+        }
     };
     this.syncMove=function (obj1,obj2) {
         if(obj2.movestyle=="vertical")
