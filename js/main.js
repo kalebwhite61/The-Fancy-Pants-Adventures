@@ -115,7 +115,10 @@ game.States.test=function(){
         game.stage.backgroundColor="#ff9";
         //摆动的绳子
         rope=game.add.sprite(game.world.centerX,game.world.centerY,"ground");
-        rope.anchor.setTo(0.5,0.5);
+        //rope.anchor.setTo(0.5,0.5);
+        //rope.pivot.y=rope.width/4;
+        rope.scale(0.5,0.5);
+        rope.anchor.setTo(0,0.5);
         rope.angle=90;
 
         player=game.add.sprite(0,game.world.height-150,"playerwalk",2);
@@ -135,6 +138,7 @@ game.States.test=function(){
         game.physics.arcade.collide(player, layer,null);
 
         rope.angle+=1;
+
         if(cursors.left.isDown){
             if(player.body.touching.down||player.body.onFloor())
                 player.animations.play("leftMove",10,true);
@@ -161,6 +165,7 @@ game.States.test=function(){
     };
     this.render=function() {
         game.debug.spriteInfo(rope, 32, 32,"black");
+        game.debug.geom(new Phaser.Point(rope.x, rope.y), '#36ff00');
     }
 
 }
