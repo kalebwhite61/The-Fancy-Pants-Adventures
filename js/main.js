@@ -107,6 +107,8 @@ game.States.test=function(){
     var playerJump=-180;
     var gravity=180;
     var playerMove=false;
+    var ropeDir=true;
+    var angleStep=0.5;
 
     this.create = function() {
         //开启物理引擎
@@ -117,9 +119,11 @@ game.States.test=function(){
         rope=game.add.sprite(game.world.centerX,game.world.centerY,"ground");
         //rope.anchor.setTo(0.5,0.5);
         //rope.pivot.y=rope.width/4;
-        rope.scale(0.5,0.5);
+       // rope.scale(0.5,0.5);
+        rope.scale.x=0.5;
+        rope.scale.y=0.1;
         rope.anchor.setTo(0,0.5);
-        rope.angle=90;
+        rope.angle=30;
 
         player=game.add.sprite(0,game.world.height-150,"playerwalk",2);
         //玩家物理引擎配置
@@ -133,11 +137,18 @@ game.States.test=function(){
         cursors=game.input.keyboard.createCursorKeys();
         player.frame=0;
         playerMove=true;
+        player.stick=true;
     };
     this.update =function () {
-        game.physics.arcade.collide(player, layer,null);
-
-        rope.angle+=1;
+        if(ropeDir){
+            rope.angle+=angleStep;
+            if(rope.angle==150)
+                ropeDir=false;
+        }else{
+            rope.angle-=angleStep;
+            if(rope.angle==30)
+                ropeDir=true;
+        }
 
         if(cursors.left.isDown){
             if(player.body.touching.down||player.body.onFloor())
@@ -145,6 +156,7 @@ game.States.test=function(){
             else
                 player.frame=1;
             player.body.velocity.x=-playerSpeed;
+            player.stick=false;
 
         }else if(cursors.right.isDown){
             if(player.body.touching.down||player.body.onFloor())
@@ -152,20 +164,44 @@ game.States.test=function(){
             else
                 player.frame=2;
             player.body.velocity.x=playerSpeed;
+            player.stick=false;
         }else{
             player.animations.stop();
             if(playerMove)
                 player.frame=0;
             player.body.velocity.x=0;
+            player.stick=true;
         };
         if(cursors.up.isDown&&(player.body.touching.down||player.body.onFloor())){
             player.body.velocity.y=playerJump;
         };
-
+        if(rope.angle>90)
+            tiltCollide(player,rope.getBounds().bottomLeft);
+        else
+            tiltCollide(player,rope.getBounds().bottomRight);
     };
     this.render=function() {
         game.debug.spriteInfo(rope, 32, 32,"black");
         game.debug.geom(new Phaser.Point(rope.x, rope.y), '#36ff00');
+        if(rope.angle>90)
+            game.debug.geom(new Phaser.Point(rope.getBounds().bottomLeft.x, rope.getBounds().bottomLeft.y),"#36ff00");
+        else
+            game.debug.geom(new Phaser.Point(rope.getBounds().bottomRight.x, rope.getBounds().bottomRight.y),"#36ff00");
+       // console.log(rope.getBounds());
+        //game.debug.text(rope.getBounds(),32,200,"black");
+        game.debug.spriteBounds(rope);
+    };
+    function tiltCollide(object,tilt){
+        var offsetX=Math.abs(object.x-tilt.x);
+        var offsetY=Math.abs(object.y-tilt.y);
+        if(offsetX<30&&offsetY<30&&object.stick) {
+            player.x = tilt.x-16;
+            player.y = tilt.y;
+            player.body.gravity.y=0;
+        }else{
+            player.body.gravity.y=gravity;
+        }
+
     }
 
 }
