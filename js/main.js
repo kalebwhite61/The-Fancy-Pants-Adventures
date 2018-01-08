@@ -384,6 +384,8 @@ game.States.main = function() {
         //陷阱放置
         trap=game.add.sprite(200,game.world.height-98,"trap");
         trap.scale.setTo(0.7,0.7);
+        game.physics.arcade.enable(trap);
+        trap.body.immovable=true;
 
         //玩家物理引擎配置
         game.physics.arcade.enable(player);
@@ -403,9 +405,10 @@ game.States.main = function() {
         },this);
      };
     this.update =function () {
-        game.physics.arcade.collide(player, layer,null);
+        game.physics.arcade.collide(player,layer,null);
         game.physics.arcade.collide(player,obstacleHorizontalMove,this.syncMove);
         game.physics.arcade.collide(player,obstacleVerticalMove,this.syncMove);
+        game.physics.arcade.collide(player,trap,this.gameOver);
         var beltAction=game.physics.arcade.collide(player,belt);
         var beltLeftAction=game.physics.arcade.collide(player,belt2);
         //绳子摆动方向
@@ -480,6 +483,10 @@ game.States.main = function() {
             player.body.gravity.y=gravity;
         }
 
+    };
+    this.gameOver=function(){
+        // player.kill();
+        console.log("Game Over ...");
     }
 };
 
