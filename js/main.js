@@ -32,6 +32,7 @@ game.States.preload = function() {
         game.load.image("tree","assets/tree.png",142,156);
         game.load.image("dusty","assets/dusty.png",64,30);
         game.load.image("ground","assets/platform.png",400,32);
+        game.load.image("trap","assets/trap.png",48,50);
         //地图资源加载
         game.load.image("tilePic","assets/map/testMapPic.png");
         game.load.tilemap('matchmanMap', 'assets/map/test.json', null, Phaser.Tilemap.TILED_JSON);
@@ -39,8 +40,8 @@ game.States.preload = function() {
     };
     this.create = function() {
         //game.state.start('start');
-        //game.state.start('main');
-        game.state.start('test');
+        game.state.start('main');
+        //game.state.start('test');
     };
 };
 //P2引擎测试页面
@@ -102,7 +103,7 @@ game.States.P2World=function(){
 };
 //Arcade功能测试页面
 game.States.test=function(){
-    var player,cursors,layer,rope;
+    var player,cursors,rope;
     var playerSpeed=120;
     var playerJump=-180;
     var gravity=180;
@@ -117,9 +118,6 @@ game.States.test=function(){
         game.stage.backgroundColor="#ff9";
         //摆动的绳子
         rope=game.add.sprite(game.world.centerX,game.world.centerY,"ground");
-        //rope.anchor.setTo(0.5,0.5);
-        //rope.pivot.y=rope.width/4;
-       // rope.scale(0.5,0.5);
         rope.scale.x=0.5;
         rope.scale.y=0.1;
         rope.anchor.setTo(0,0.5);
@@ -187,8 +185,7 @@ game.States.test=function(){
             game.debug.geom(new Phaser.Point(rope.getBounds().bottomLeft.x, rope.getBounds().bottomLeft.y),"#36ff00");
         else
             game.debug.geom(new Phaser.Point(rope.getBounds().bottomRight.x, rope.getBounds().bottomRight.y),"#36ff00");
-       // console.log(rope.getBounds());
-        //game.debug.text(rope.getBounds(),32,200,"black");
+
         game.debug.spriteBounds(rope);
     };
     function tiltCollide(object,tilt){
@@ -319,13 +316,15 @@ game.States.start = function() {
 
 //主场景
 game.States.main = function() {
-    var player,cursors,map,layer,belt,belt2;
+    var player,cursors,map,layer,belt,belt2,rope,trap;
     var obstacleHorizontalMove,obstacleVerticalMove;
     var playerSpeed=120;
     var playerJump=-180;
     var gravity=180;
     var playerMove=false;
     var beltStop=true;
+    var ropeDir=true;
+    var angleStep=0.5;
     this.create = function() {
         //开启物理引擎
         game.physics.startSystem(Phaser.Physics.ARCADE);
@@ -375,6 +374,17 @@ game.States.main = function() {
         game.physics.arcade.enable(belt2);
         belt2.body.immovable=true;
 
+        //摆动的绳子
+        rope=game.add.sprite(150,game.world.centerY-50,"ground");
+        rope.scale.x=0.5;
+        rope.scale.y=0.1;
+        rope.anchor.setTo(0,0.5);
+        rope.angle=30;
+
+        //陷阱放置
+        trap=game.add.sprite(200,game.world.height-98,"trap");
+        trap.scale.setTo(0.7,0.7);
+
         //玩家物理引擎配置
         game.physics.arcade.enable(player);
         player.body.collideWorldBounds=true;
@@ -398,6 +408,16 @@ game.States.main = function() {
         game.physics.arcade.collide(player,obstacleVerticalMove,this.syncMove);
         var beltAction=game.physics.arcade.collide(player,belt);
         var beltLeftAction=game.physics.arcade.collide(player,belt2);
+        //绳子摆动方向
+        if(ropeDir){
+            rope.angle+=angleStep;
+            if(rope.angle==150)
+                ropeDir=false;
+        }else{
+            rope.angle-=angleStep;
+            if(rope.angle==30)
+                ropeDir=true;
+        }
         if(cursors.left.isDown){
             if(player.body.touching.down||player.body.onFloor())
                 player.animations.play("leftMove",10,true);
@@ -408,6 +428,7 @@ game.States.main = function() {
                 player.body.velocity.x+=playerSpeed/2;
             if(beltLeftAction)
                 player.body.velocity.x-=playerSpeed/2;
+            player.stick=false;
         }else if(cursors.right.isDown){
             if(player.body.touching.down||player.body.onFloor())
                 player.animations.play("rightMove",10,true);
@@ -418,6 +439,7 @@ game.States.main = function() {
                 player.body.velocity.x+=playerSpeed/2;
             if(beltLeftAction)
                 player.body.velocity.x-=playerSpeed/2;
+            player.stick=false;
         }else{
             player.animations.stop();
             if(playerMove)
@@ -427,6 +449,7 @@ game.States.main = function() {
                 player.body.velocity.x+=playerSpeed/2;
             if(beltLeftAction)
                 player.body.velocity.x-=playerSpeed/2;
+            player.stick=true;
         };
         if(cursors.up.isDown&&(player.body.touching.down||player.body.onFloor())){
             player.body.velocity.y=playerJump;
@@ -434,11 +457,29 @@ game.States.main = function() {
         if(player.body.touching.down||player.body.onFloor()){
             beltStop=false;
         }
+        //玩家和绳子的碰撞检测
+        if(rope.angle>90)
+            tiltCollide(player,rope.getBounds().bottomLeft);
+        else
+            tiltCollide(player,rope.getBounds().bottomRight);
     };
     this.syncMove=function (obj1,obj2) {
         if(obj2.movestyle=="vertical")
             obj1.body.velocity.y=obj2.movespeed;
         obj1.x+=obj2.x-obj2.previousPosition.x;
+    };
+    //玩家与绳子的碰撞检测
+    function tiltCollide(object,tilt){
+        var offsetX=Math.abs(object.x-tilt.x);
+        var offsetY=Math.abs(object.y-tilt.y);
+        if(offsetX<30&&offsetY<30&&object.stick) {
+            player.x = tilt.x-16;
+            player.y = tilt.y;
+            player.body.gravity.y=0;
+        }else{
+            player.body.gravity.y=gravity;
+        }
+
     }
 };
 
