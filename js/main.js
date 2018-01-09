@@ -36,12 +36,15 @@ game.States.preload = function() {
         //地图资源加载
         game.load.image("tilePic","assets/map/testMapPic.png");
         game.load.tilemap('matchmanMap', 'assets/map/test.json', null, Phaser.Tilemap.TILED_JSON);
+        //测试地图资源
+        game.load.image("tile","assets/map/ground.png");
+        game.load.tilemap("mapone","assets/map/road.json",null, Phaser.Tilemap.TILED_JSON);
 
     };
     this.create = function() {
         //game.state.start('start');
-        game.state.start('main');
-        //game.state.start('test');
+        //game.state.start('main');
+        game.state.start('test');
     };
 };
 //P2引擎测试页面
@@ -103,104 +106,89 @@ game.States.P2World=function(){
 };
 //Arcade功能测试页面
 game.States.test=function(){
-    var player,cursors,rope;
-    var playerSpeed=120;
-    var playerJump=-180;
-    var gravity=180;
-    var playerMove=false;
-    var ropeDir=true;
-    var angleStep=0.5;
+    var map,groundLayer;
 
     this.create = function() {
         //开启物理引擎
         game.physics.startSystem(Phaser.Physics.ARCADE);
         //启动页面背景色
         game.stage.backgroundColor="#ff9";
-        //摆动的绳子
-        rope=game.add.sprite(game.world.centerX,game.world.centerY,"ground");
-        rope.scale.x=0.5;
-        rope.scale.y=0.1;
-        rope.anchor.setTo(0,0.5);
-        rope.angle=30;
 
-        player=game.add.sprite(0,game.world.height-150,"playerwalk",2);
-        //玩家物理引擎配置
-        game.physics.arcade.enable(player);
-        player.body.collideWorldBounds=true;
-        player.body.gravity.y=gravity;
-        //玩家动画效果
-        player.animations.add("leftMove",[8,9,10,11,12]);
-        player.animations.add("rightMove",[3,4,5,6,7]);
-        //键盘监听事件
-        cursors=game.input.keyboard.createCursorKeys();
-        player.frame=0;
-        playerMove=true;
-        player.stick=true;
+        //地图资源加载
+        map = game.add.tilemap('mapone');
+        map.addTilesetImage('groundSet', 'tile');
+        groundLayer = map.createLayer('gameGround');
+        //根据地图大小，重新设置游戏世界大小
+        groundLayer.resizeWorld();
+
+
+
+        // map = game.add.tilemap('matchmanMap');
+        // map.addTilesetImage('elementSet', 'tilePic');
+        // groundLayer = map.createLayer('GameWorld');
+        // layer.resizeWorld();
+        // 设置tile碰撞
+        // map.setCollisionBetween(13, 17);
+        // map.setCollisionBetween(20, 25);
+        // map.setCollisionBetween(27, 29);
+        // map.setCollision(40);
+
+
+        // player=game.add.sprite(0,game.world.height-150,"playerwalk",2);
+        // //玩家物理引擎配置
+        // game.physics.arcade.enable(player);
+        // player.body.collideWorldBounds=true;
+        // player.body.gravity.y=gravity;
+        // //玩家动画效果
+        // player.animations.add("leftMove",[8,9,10,11,12]);
+        // player.animations.add("rightMove",[3,4,5,6,7]);
+        // //键盘监听事件
+        // cursors=game.input.keyboard.createCursorKeys();
+        // player.frame=0;
+        // playerMove=true;
+        // player.stick=true;
     };
     this.update =function () {
-        if(ropeDir){
-            rope.angle+=angleStep;
-            if(rope.angle==150)
-                ropeDir=false;
-        }else{
-            rope.angle-=angleStep;
-            if(rope.angle==30)
-                ropeDir=true;
-        }
-
-        if(cursors.left.isDown){
-            if(player.body.touching.down||player.body.onFloor())
-                player.animations.play("leftMove",10,true);
-            else
-                player.frame=1;
-            player.body.velocity.x=-playerSpeed;
-            player.stick=false;
-
-        }else if(cursors.right.isDown){
-            if(player.body.touching.down||player.body.onFloor())
-                player.animations.play("rightMove",10,true);
-            else
-                player.frame=2;
-            player.body.velocity.x=playerSpeed;
-            player.stick=false;
-        }else{
-            player.animations.stop();
-            if(playerMove)
-                player.frame=0;
-            player.body.velocity.x=0;
-            player.stick=true;
-        };
-        if(cursors.up.isDown&&(player.body.touching.down||player.body.onFloor())){
-            player.body.velocity.y=playerJump;
-        };
-        if(rope.angle>90)
-            tiltCollide(player,rope.getBounds().bottomLeft);
-        else
-            tiltCollide(player,rope.getBounds().bottomRight);
+        // if(cursors.left.isDown){
+        //     if(player.body.touching.down||player.body.onFloor())
+        //         player.animations.play("leftMove",10,true);
+        //     else
+        //         player.frame=1;
+        //     player.body.velocity.x=-playerSpeed;
+        //     player.stick=false;
+        //
+        // }else if(cursors.right.isDown){
+        //     if(player.body.touching.down||player.body.onFloor())
+        //         player.animations.play("rightMove",10,true);
+        //     else
+        //         player.frame=2;
+        //     player.body.velocity.x=playerSpeed;
+        //     player.stick=false;
+        // }else{
+        //     player.animations.stop();
+        //     if(playerMove)
+        //         player.frame=0;
+        //     player.body.velocity.x=0;
+        //     player.stick=true;
+        // };
+        // if(cursors.up.isDown&&(player.body.touching.down||player.body.onFloor())){
+        //     player.body.velocity.y=playerJump;
+        // };
+        // if(rope.angle>90)
+        //     tiltCollide(player,rope.getBounds().bottomLeft);
+        // else
+        //     tiltCollide(player,rope.getBounds().bottomRight);
     };
     this.render=function() {
-        game.debug.spriteInfo(rope, 32, 32,"black");
-        game.debug.geom(new Phaser.Point(rope.x, rope.y), '#36ff00');
-        if(rope.angle>90)
-            game.debug.geom(new Phaser.Point(rope.getBounds().bottomLeft.x, rope.getBounds().bottomLeft.y),"#36ff00");
-        else
-            game.debug.geom(new Phaser.Point(rope.getBounds().bottomRight.x, rope.getBounds().bottomRight.y),"#36ff00");
-
-        game.debug.spriteBounds(rope);
+        // game.debug.spriteInfo(rope, 32, 32,"black");
+        // game.debug.geom(new Phaser.Point(rope.x, rope.y), '#36ff00');
+        // if(rope.angle>90)
+        //     game.debug.geom(new Phaser.Point(rope.getBounds().bottomLeft.x, rope.getBounds().bottomLeft.y),"#36ff00");
+        // else
+        //     game.debug.geom(new Phaser.Point(rope.getBounds().bottomRight.x, rope.getBounds().bottomRight.y),"#36ff00");
+        //
+        // game.debug.spriteBounds(rope);
     };
-    function tiltCollide(object,tilt){
-        var offsetX=Math.abs(object.x-tilt.x);
-        var offsetY=Math.abs(object.y-tilt.y);
-        if(offsetX<30&&offsetY<30&&object.stick) {
-            player.x = tilt.x-16;
-            player.y = tilt.y;
-            player.body.gravity.y=0;
-        }else{
-            player.body.gravity.y=gravity;
-        }
-
-    }
-
 }
 //开始页面
 game.States.start = function() {
