@@ -108,7 +108,7 @@ game.States.test=function(){
         this.moveStyle= moveStyle;
         this.moveFlag= moveFlag;
     };
-    var stoneGroup;
+    var stoneGroup,stoneGroupTwo;
     var player,cursors,map,groundLayer,belt,belt2,rope;
     var stone=new Stone("hori")
     var obstacleHorizontalMove,obstacleVerticalMove;
@@ -151,7 +151,7 @@ game.States.test=function(){
         game.physics.arcade.enable(belt);
         belt.body.immovable=true;
 
-        belt2=game.add.sprite(29*50,10*50,"s-belt",0);
+        belt2=game.add.sprite(27*50,10*50,"s-belt",0);
         belt2.animations.add("belt_move_left").reverse();
         belt2.animations.play("belt_move_left",32,true);
         game.physics.arcade.enable(belt2);
