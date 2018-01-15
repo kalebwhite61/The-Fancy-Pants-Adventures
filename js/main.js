@@ -128,6 +128,7 @@ game.States.test=function(){
     var beltStop=true;
     var ropeDir=true;
     var myTile;
+    var startPos=44;
 
     this.create = function() {
         //开启物理引擎
@@ -177,8 +178,19 @@ game.States.test=function(){
         stoneGroup.create(34*50,7*50,"stone",6);
         stoneGroup.create(36*50,9*50,"stone",6);
 
+        //水平移动障碍物集
+        obstacleHorizontalMove=game.add.group();
+        obstacleHorizontalMove.enableBody=true;
+        var obstacleGround=obstacleHorizontalMove.create(40*50,game.world.height-100,"ground");
+        obstacleGround.movestyle="horizontal";
+        obstacleGround.body.immovable=true;
+        for(var i=0;i<obstacleHorizontalMove.length;i++)
+            game.add.tween(obstacleHorizontalMove.getChildAt(i)).to({x:43*50},2000,null,true,0,-1,true);
+
+
+
         //玩家物理引擎配置
-        player=game.add.sprite(18*50,game.world.height-170,"playerwalk",2);
+        player=game.add.sprite(startPos*50,game.world.height-170,"playerwalk",2);
         Character.call(player);      //扩展玩家属性
         game.physics.arcade.enable(player);
         player.body.collideWorldBounds=true;
@@ -186,7 +198,7 @@ game.States.test=function(){
         //摄像机跟随
         game.camera.follow(player);
         //玩家动画效果
-        var initAnimation=game.add.tween(player).to({x:19*50,y:game.world.height-player.height-50},1000,null,true);
+        var initAnimation=game.add.tween(player).to({x:(startPos+1)*50,y:game.world.height-player.height-50},1000,null,true);
         player.animations.add("leftMove",[8,9,10,11,12]);
         player.animations.add("rightMove",[3,4,5,6,7]);
         //键盘监听事件
@@ -288,7 +300,6 @@ game.States.test=function(){
     //玩家死亡复活后重置属性恢复场景
     function resetConfig(){
         player.reverseFlag=false;
-
     }
     function hit(obj1,obj2){
         console.log("Hit...");
