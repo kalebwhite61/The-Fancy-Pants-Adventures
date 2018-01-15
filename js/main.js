@@ -212,7 +212,7 @@ game.States.test=function(){
         var beltLeftAction=game.physics.arcade.collide(player,belt2);
 
         //恢复正常操作
-        if((player.x<=20*50)&&player.body.onFloor())
+        if((player.x<=20*50||player.x+player.width>=45*50)&&player.body.onFloor())
             resetConfig();
 
         playerSpeed=player.reverseFlag?-Math.abs(playerSpeed):Math.abs(playerSpeed);
