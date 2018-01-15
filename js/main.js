@@ -108,17 +108,26 @@ game.States.test=function(){
         this.moveStyle= moveStyle;
         this.moveFlag= moveFlag;
     };
-    var stoneGroup,stoneGroupTwo;
+    //玩家对象扩展属性
+    function Character(){
+        this.reverseFlag=false;
+    };
+    //NPC对象
+    function NPC(){
+
+    };
+    var stoneGroup,evilBoxGroup;
     var player,cursors,map,groundLayer,belt,belt2,rope;
     var stone=new Stone("hori")
     var obstacleHorizontalMove,obstacleVerticalMove;
     var playerSpeed=100;
+    var npcSpeed=100;
     var playerJump=-175;
     var gravity=250;
     var playerMove=false;
     var beltStop=true;
     var ropeDir=true;
-    var tileEle;
+    var myTile;
 
     this.create = function() {
         //开启物理引擎
@@ -136,7 +145,7 @@ game.States.test=function(){
         map.setCollisionBetween(1, 9);
         //尖刺回调函数
         map.setTileIndexCallback(8,gameOver,this);
-
+        //map.setTileLocationCallback(20,11,44,11,gameOver,this);
         //第一梯队障碍，进击的石头
         stoneGroup=game.add.group();
         stoneGroup.enableBody=true;
@@ -157,10 +166,20 @@ game.States.test=function(){
         game.physics.arcade.enable(belt2);
         belt2.body.immovable=true;
 
+        evilBoxGroup=game.add.group();
+        evilBoxGroup.enableBody=true;
+        evilBoxGroup.create(25*50,9*50,"stone",5).body.immovable=true;
+        evilBoxGroup.create(32*50,8*50,"stone",5).body.immovable=true;
+        evilBoxGroup.create(35*50,8*50,"stone",5).body.immovable=true;
 
+        stoneGroup.create(31*50,9*50,"stone",6);
+        stoneGroup.create(33*50,7*50,"stone",6);
+        stoneGroup.create(34*50,7*50,"stone",6);
+        stoneGroup.create(36*50,9*50,"stone",6);
 
         //玩家物理引擎配置
         player=game.add.sprite(18*50,game.world.height-170,"playerwalk",2);
+        Character.call(player);      //扩展玩家属性
         game.physics.arcade.enable(player);
         player.body.collideWorldBounds=true;
         player.body.gravity.y=gravity;
@@ -176,37 +195,51 @@ game.States.test=function(){
             player.frame=0;
             playerMove=true;
         },this);
+
     };
     this.update =function () {
+        //信息调试
+        // if(game.input.keyboard.isDown(Phaser.Keyboard.SPACEBAR))
+        //     console.log(myTile.containsPoint(player.x,player.y+player.height));
+        game.physics.arcade.collide(player,evilBoxGroup,reverseOperation);
         game.physics.arcade.collide(player,stoneGroup);
         game.physics.arcade.collide(player,groundLayer,null);
-        game.physics.arcade.collide(player,obstacleHorizontalMove,this.syncMove);
-        game.physics.arcade.collide(player,obstacleVerticalMove,this.syncMove);
+        game.physics.arcade.collide(player,obstacleHorizontalMove,syncMove);
+        game.physics.arcade.collide(player,obstacleVerticalMove,syncMove);
         game.physics.arcade.collide(player,stone,stoneMove);
         var beltAction=game.physics.arcade.collide(player,belt);
         var beltLeftAction=game.physics.arcade.collide(player,belt2);
 
+        //恢复正常操作
+        if((player.x<=20*50)&&player.body.onFloor())
+            resetConfig();
+
+        playerSpeed=player.reverseFlag?-Math.abs(playerSpeed):Math.abs(playerSpeed);
         if(cursors.left.isDown){
-            if(player.body.touching.down||player.body.onFloor())
-                player.animations.play("leftMove",10,true);
+            if(player.body.touching.down||player.body.onFloor()){
+                var move=player.reverseFlag?"rightMove":"leftMove";
+                player.animations.play(move,10,true);
+            }
             else
-                player.frame=1;
+                player.frame=player.reverseFlag?2:1;
             player.body.velocity.x=-playerSpeed;
             if(beltAction)
-                player.body.velocity.x+=playerSpeed/2;
+                player.body.velocity.x+=npcSpeed/2;
             if(beltLeftAction)
-                player.body.velocity.x-=playerSpeed/2;
+                player.body.velocity.x-=npcSpeed/2;
             player.stick=false;
         }else if(cursors.right.isDown){
-            if(player.body.touching.down||player.body.onFloor())
-                player.animations.play("rightMove",10,true);
+            if(player.body.touching.down||player.body.onFloor()){
+                var move=player.reverseFlag?"leftMove":"rightMove";
+                player.animations.play(move,10,true);
+            }
             else
-                player.frame=2;
+                player.frame=player.reverseFlag?1:2;
             player.body.velocity.x=playerSpeed;
             if(beltAction)
-                player.body.velocity.x+=playerSpeed/2;
+                player.body.velocity.x+=npcSpeed/2;
             if(beltLeftAction)
-                player.body.velocity.x-=playerSpeed/2;
+                player.body.velocity.x-=npcSpeed/2;
             player.stick=false;
         }else{
             player.animations.stop();
@@ -214,9 +247,9 @@ game.States.test=function(){
                 player.frame=0;
             player.body.velocity.x=0;
             if(beltAction)
-                player.body.velocity.x+=playerSpeed/2;
+                player.body.velocity.x+=npcSpeed/2;
             if(beltLeftAction)
-                player.body.velocity.x-=playerSpeed/2;
+                player.body.velocity.x-=npcSpeed/2;
             player.stick=true;
         };
         if(cursors.up.isDown&&(player.body.touching.down||player.body.onFloor())){
@@ -228,13 +261,14 @@ game.States.test=function(){
     };
     function gameOver(){
         var reviveX=player.x;
-        if(reviveX<50*18){
+        if(reviveX<18*50){
             player.x=350;
             player.y=250;
-        }else if(reviveX<50*30){
+        }else if(reviveX<44*50){
             player.x=18*50+25;
             player.y=10*50;
-        }
+        };
+        resetConfig();
     };
     function stoneMove(obj1,obj2){
 
@@ -244,6 +278,21 @@ game.States.test=function(){
             obj1.body.velocity.y=obj2.movespeed;
         obj1.x+=obj2.x-obj2.previousPosition.x;
     };
+    function playerMove(){
+
+    }
+    function reverseOperation(obj){
+        if(obj.previousPosition.y-obj.body.y<-1)
+            obj.reverseFlag=!obj.reverseFlag;
+    }
+    //玩家死亡复活后重置属性恢复场景
+    function resetConfig(){
+        player.reverseFlag=false;
+
+    }
+    function hit(obj1,obj2){
+        console.log("Hit...");
+    }
 }
 //开始页面
 game.States.start = function() {
