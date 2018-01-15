@@ -34,6 +34,7 @@ game.States.preload = function() {
         game.load.image("tree","assets/tree.png",142,156);
         game.load.image("dusty","assets/dusty.png",64,30);
         game.load.image("ground","assets/platform.png",400,32);
+        game.load.image("movebar","assets/movebar.png",150,33);
         //地图资源加载
         game.load.image("tile","assets/map/tileset.png");
         game.load.tilemap("mapone","assets/map/ground.json",null, Phaser.Tilemap.TILED_JSON);
@@ -128,6 +129,7 @@ game.States.test=function(){
     var beltStop=true;
     var ropeDir=true;
     var myTile;
+    var sPos=2;
 
     this.create = function() {
         //开启物理引擎
@@ -145,13 +147,7 @@ game.States.test=function(){
         map.setCollisionBetween(1, 9);
         //尖刺回调函数
         map.setTileIndexCallback(8,gameOver,this);
-        //map.setTileLocationCallback(20,11,44,11,gameOver,this);
-        //第一梯队障碍，进击的石头
-        stoneGroup=game.add.group();
-        stoneGroup.enableBody=true;
-        for(var i =0;i<3;i++) {
-           stoneGroup.create((8 + i*2) * 50, (10-i)* 50, "stone", 6);
-        }
+       // map.setTileLocationCallback(20,11,44,11,gameOver,this);
 
         //第二梯队障碍，传送带与反操作evil
         belt=game.add.sprite(21*50,10*50,"s-belt",0);
@@ -171,14 +167,19 @@ game.States.test=function(){
         evilBoxGroup.create(25*50,9*50,"stone",5).body.immovable=true;
         evilBoxGroup.create(32*50,8*50,"stone",5).body.immovable=true;
         evilBoxGroup.create(35*50,8*50,"stone",5).body.immovable=true;
-
-        stoneGroup.create(31*50,9*50,"stone",6);
-        stoneGroup.create(33*50,7*50,"stone",6);
-        stoneGroup.create(34*50,7*50,"stone",6);
-        stoneGroup.create(36*50,9*50,"stone",6);
+        //水平移动障碍物集
+        obstacleHorizontalMove=game.add.group();
+        obstacleHorizontalMove.enableBody=true;
+        var obstacleGround=obstacleHorizontalMove.create(40*50,game.world.height-100,"movebar");
+        obstacleGround.movestyle="horizontal";
+        obstacleGround.body.immovable=true;
+        for(var i=0;i<obstacleHorizontalMove.length;i++)
+            game.add.tween(obstacleHorizontalMove.getChildAt(i)).to({x:43*50},2000,null,true,0,-1,true);
+        //会消失的元素初始化
+        eleFactory();
 
         //玩家物理引擎配置
-        player=game.add.sprite(18*50,game.world.height-170,"playerwalk",2);
+        player=game.add.sprite(sPos*50,game.world.height-170,"playerwalk",2);
         Character.call(player);      //扩展玩家属性
         game.physics.arcade.enable(player);
         player.body.collideWorldBounds=true;
@@ -186,7 +187,7 @@ game.States.test=function(){
         //摄像机跟随
         game.camera.follow(player);
         //玩家动画效果
-        var initAnimation=game.add.tween(player).to({x:19*50,y:game.world.height-player.height-50},1000,null,true);
+        var initAnimation=game.add.tween(player).to({x:(sPos+1)*50,y:game.world.height-player.height-50},1000,null,true);
         player.animations.add("leftMove",[8,9,10,11,12]);
         player.animations.add("rightMove",[3,4,5,6,7]);
         //键盘监听事件
@@ -268,6 +269,7 @@ game.States.test=function(){
             player.x=18*50+25;
             player.y=10*50;
         };
+        eleFactory();
         resetConfig();
     };
     function stoneMove(obj1,obj2){
@@ -289,6 +291,20 @@ game.States.test=function(){
     function resetConfig(){
         player.reverseFlag=false;
 
+    }
+    function eleFactory(){
+        if(stoneGroup!=undefined)
+            stoneGroup.destroy();
+        stoneGroup=game.add.group();
+        stoneGroup.enableBody=true;
+        for(var i =0;i<3;i++) {
+            stoneGroup.create((8 + i*2) * 50, (10-i)* 50, "stone", 6);
+        }
+
+        stoneGroup.create(31*50,9*50,"stone",6);
+        stoneGroup.create(33*50,7*50,"stone",6);
+        stoneGroup.create(34*50,7*50,"stone",6);
+        stoneGroup.create(36*50,9*50,"stone",6);
     }
     function hit(obj1,obj2){
         console.log("Hit...");
