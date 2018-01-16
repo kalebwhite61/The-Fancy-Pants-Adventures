@@ -30,6 +30,8 @@ game.States.preload = function() {
         game.load.spritesheet("s-belt","assets/s-belt.png",119.5,32);
         game.load.spritesheet("belt_reverse","assets/belt.png",263,32);
         game.load.spritesheet("stone","assets/map/tileset.png",50,50);
+        game.load.spritesheet('waters', 'assets/waters.png', 32, 400, 32);
+        game.load.spritesheet('shark','assets/shark.png',150,92);
         game.load.image("startBtn","assets/startBtn.png",173,38);
         game.load.image("tree","assets/tree.png",142,156);
         game.load.image("dusty","assets/dusty.png",64,30);
@@ -109,9 +111,11 @@ game.States.test=function(){
         this.moveStyle= moveStyle;
         this.moveFlag= moveFlag;
     };
-    //玩家对象扩展属性
-    function Character(){
-        this.reverseFlag=false;
+    //对象扩展属性
+    function Character(flag,speed,curDir){
+        this.reverseFlag=flag;
+        this.speed=speed;
+        this.curDir=curDir;
     };
     //NPC对象
     function NPC(){
@@ -129,13 +133,30 @@ game.States.test=function(){
     var beltStop=true;
     var ropeDir=true;
     var myTile;
-    var sPos=2;
+    var sPos=45;
+    var water;
+    var shark;
+    var sharkSwim;
+    var sharkSpeed=100;
 
     this.create = function() {
         //开启物理引擎
         game.physics.startSystem(Phaser.Physics.ARCADE);
         //启动页面背景色
         game.stage.backgroundColor="#ff9";
+
+        //玩家物理引擎配置
+        player=game.add.sprite(sPos*50,game.world.height-170,"playerwalk",2);
+        Character.call(player,false);      //扩展玩家属性
+        game.physics.arcade.enable(player);
+        player.body.collideWorldBounds=true;
+        player.body.gravity.y=gravity;
+        //摄像机跟随
+        game.camera.follow(player);
+        //玩家动画效果
+        var initAnimation=game.add.tween(player).to({x:(sPos+1)*50,y:game.world.height-player.height-50},1000,null,true);
+        player.animations.add("leftMove",[8,9,10,11,12]);
+        player.animations.add("rightMove",[3,4,5,6,7]);
 
         //地图资源加载
         map = game.add.tilemap('mapone');
@@ -147,27 +168,9 @@ game.States.test=function(){
         map.setCollisionBetween(1, 9);
         //尖刺回调函数
         map.setTileIndexCallback(8,gameOver,this);
-       // map.setTileLocationCallback(20,11,44,11,gameOver,this);
-
-        //第二梯队障碍，传送带与反操作evil
-        belt=game.add.sprite(21*50,10*50,"s-belt",0);
-        belt.animations.add("belt_move");
-        belt.animations.play("belt_move",32,true);
-        game.physics.arcade.enable(belt);
-        belt.body.immovable=true;
-
-        belt2=game.add.sprite(27*50,10*50,"s-belt",0);
-        belt2.animations.add("belt_move_left").reverse();
-        belt2.animations.play("belt_move_left",32,true);
-        game.physics.arcade.enable(belt2);
-        belt2.body.immovable=true;
-
-        evilBoxGroup=game.add.group();
-        evilBoxGroup.enableBody=true;
-        evilBoxGroup.create(25*50,9*50,"stone",5).body.immovable=true;
-        evilBoxGroup.create(32*50,8*50,"stone",5).body.immovable=true;
-        evilBoxGroup.create(35*50,8*50,"stone",5).body.immovable=true;
-        //水平移动障碍物集
+        //可下落砖块初始化，包括第一梯队障碍（进击的石头）和后续梯队同类型障碍
+        eleFactory();
+        //水平移动障碍物集包括后障碍阶梯续会出现的
         obstacleHorizontalMove=game.add.group();
         obstacleHorizontalMove.enableBody=true;
         var obstacleGround=obstacleHorizontalMove.create(40*50,game.world.height-100,"movebar");
@@ -175,33 +178,64 @@ game.States.test=function(){
         obstacleGround.body.immovable=true;
         for(var i=0;i<obstacleHorizontalMove.length;i++)
             game.add.tween(obstacleHorizontalMove.getChildAt(i)).to({x:43*50},2000,null,true,0,-1,true);
-        //会消失的元素初始化
-        eleFactory();
 
-        //玩家物理引擎配置
-        player=game.add.sprite(sPos*50,game.world.height-170,"playerwalk",2);
-        Character.call(player);      //扩展玩家属性
-        game.physics.arcade.enable(player);
-        player.body.collideWorldBounds=true;
-        player.body.gravity.y=gravity;
-        //摄像机跟随
-        game.camera.follow(player);
-        //玩家动画效果
-        var initAnimation=game.add.tween(player).to({x:(sPos+1)*50,y:game.world.height-player.height-50},1000,null,true);
-        player.animations.add("leftMove",[8,9,10,11,12]);
-        player.animations.add("rightMove",[3,4,5,6,7]);
+        //第二梯队障碍，传送带与反操作evil
+        belt=game.add.sprite(21*50,10*50,"s-belt",0);                            //第一传送带
+        belt.animations.add("belt_move");
+        belt.animations.play("belt_move",32,true);
+        game.physics.arcade.enable(belt);
+        belt.body.immovable=true;
+        belt2=game.add.sprite(27*50,10*50,"s-belt",0);                          //第二传送带
+        belt2.animations.add("belt_move_left").reverse();
+        belt2.animations.play("belt_move_left",32,true);
+        game.physics.arcade.enable(belt2);
+        belt2.body.immovable=true;
+        evilBoxGroup=game.add.group();                                          //反操作砖块组
+        evilBoxGroup.enableBody=true;
+        evilBoxGroup.create(25*50,9*50,"stone",5).body.immovable=true;
+        evilBoxGroup.create(32*50,8*50,"stone",5).body.immovable=true;
+        evilBoxGroup.create(35*50,8*50,"stone",5).body.immovable=true;
+
+        //第三梯队障碍,大海与鲨鱼
+        shark=game.add.sprite(48*50,game.world.height-70,'shark',0);               //鲨鱼引入
+        Character.apply(shark,[false,sharkSpeed,"right"]);
+        shark.animations.add("rAttack",[0,1]);
+        shark.animations.add('lAttack',[3,2]);
+        game.physics.arcade.enable(shark);
+        // sharkAttack.chain(sharkAttackFinish);
+        // sharkAttack.start();
+
+        water = game.add.tileSprite(48*50,game.world.height-65,23*50, 80, 'waters');
+        water.animations.add('waves0', [0, 1, 2, 3, 2, 1]);
+        water.animations.add('waves1', [4, 5, 6, 7, 6, 5]);
+        water.animations.add('waves2', [8, 9, 10, 11, 10, 9]);
+        water.animations.add('waves3', [12, 13, 14, 15, 14, 13]);
+        water.animations.add('waves4', [16, 17, 18, 19, 18, 17]);
+        water.animations.add('waves5', [20, 21, 22, 23, 22, 21]);
+        water.animations.add('waves6', [24, 25, 26, 27, 26, 25]);
+        water.animations.add('waves7', [28, 29, 30, 31, 30, 29]);
+        var n = 7;                                                               //设置海水颜色
+        water.animations.play('waves' + n, 8, true);
+
+
         //键盘监听事件
         cursors=game.input.keyboard.createCursorKeys();
         initAnimation.onComplete.add(function () {
             player.frame=0;
             playerMove=true;
         },this);
-
     };
     this.update =function () {
+        //鲨鱼游泳
+        Swim();
         //信息调试
-        // if(game.input.keyboard.isDown(Phaser.Keyboard.SPACEBAR))
-        //     console.log(myTile.containsPoint(player.x,player.y+player.height));
+        if(game.input.keyboard.isDown(Phaser.Keyboard.SPACEBAR)){
+            Attack();
+        }
+        // if(game.input.keyboard.isDown(Phaser.Keyboard.BACKSPACE)){
+        //     sharkSwim.resume();
+        // }
+
         game.physics.arcade.collide(player,evilBoxGroup,reverseOperation);
         game.physics.arcade.collide(player,stoneGroup);
         game.physics.arcade.collide(player,groundLayer,null);
@@ -306,8 +340,37 @@ game.States.test=function(){
         stoneGroup.create(34*50,7*50,"stone",6);
         stoneGroup.create(36*50,9*50,"stone",6);
     }
-    function hit(obj1,obj2){
-        console.log("Hit...");
+    function Attack(){
+        shark.speed=0;
+        var ackDistance=shark.curDir=="right"?shark.x+2*50:shark.x-2*50;
+        var ackAngle=shark.curDir=="right"?-5:5;
+        var ackDir=shark.curDir=="right"?"rAttack":"lAttack";
+        var sharkAttack=game.add.tween(shark).to({x:ackDistance,y:game.world.height-130,angle:ackAngle},1000,Phaser.Easing.Elastic.In,true,0);
+        sharkAttack.onComplete.add(attackDown,this);
+        shark.animations.play(ackDir,4,true);
+
+    }
+    function attackDown(){
+        var ackDistance=shark.curDir=="right"?shark.x+2*50:shark.x-2*50;
+        var ackAngle=0;
+        var sharkAttackDown=game.add.tween(shark).to({x:ackDistance,y:game.world.height-70,angle:ackAngle},1000,Phaser.Easing.Elastic.Out,true,0);
+        sharkAttackDown.onComplete.add(reSwim,this);
+    }
+    function reSwim(){
+        shark.animations.stop();
+        shark.speed=sharkSpeed;
+    }
+    function Swim(){
+        if(shark.x>=57*50) {
+            shark.curDir="left";
+            shark.body.velocity.x=-shark.speed;
+            shark.frame = 3;
+        }
+        else if(shark.x<=48*50) {
+            shark.curDir="right";
+            shark.body.velocity.x=shark.speed;
+            shark.frame = 0;
+        }
     }
 }
 //开始页面
@@ -333,7 +396,7 @@ game.States.start = function() {
             tween.body.immovable=true;
             //设置组元素碰撞边界
             tween.body.setSize(63,30,0,12);
-            var tweenIn=game.add.tween(tween).to({y:10}, 4000, Phaser.Easing.Exponential.Out,false);
+            var tweenIn=game.add.tween(tween).to({y:10}, 4000, Phaser.Easing.Elastic.Out,false);
             var tweenDown=game.add.tween(tween).to({y:200}, 2000, Phaser.Easing.Bounce.Out,false,i*100);
             //chain链式启动下落动画
             tweenIn.chain(tweenDown);
@@ -378,7 +441,6 @@ game.States.start = function() {
                 player.animations.play("startBack",10,true);
             };
             leftFlag=false;
-            //console.log(game.time.totalElapsedSeconds().toFixed(3)-oldtime);
         };
         if(moveFloat){
             player.y=title.getChildAt(0).y+title.y-38;
@@ -395,7 +457,7 @@ game.States.start = function() {
         setTimeout(function () {
             player.animations.add("startRun",[3,4,5,6,7]);
             player.animations.play("startRun",10,true);
-            playerRun=game.add.tween(player).to({x:700},3100,Phaser.Easing.Exponential.Out,true);
+            playerRun=game.add.tween(player).to({x:700},3100,Phaser.Easing.Elastic.Out,true);
             playerRun.onComplete.add(thisCreate.back,this);
         },1300);
     };
@@ -408,8 +470,8 @@ game.States.start = function() {
         player.body.gravity.y=80;
         player.body.collideWorldBounds=true;
         //起跳灰尘效果播放
-        var dustyOn=game.add.tween(dusty).to({alpha:1},300,Phaser.Easing.Exponential.Out,false);
-        dustyOn.chain(game.add.tween(dusty).to({alpha:0},300,Phaser.Easing.Exponential.In,false));
+        var dustyOn=game.add.tween(dusty).to({alpha:1},300,Phaser.Easing.Elastic.Out,false);
+        dustyOn.chain(game.add.tween(dusty).to({alpha:0},300,Phaser.Easing.Elastic.In,false));
         dustyOn.start();
     };
     //标题浮动
