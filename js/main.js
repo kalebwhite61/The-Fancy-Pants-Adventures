@@ -133,7 +133,7 @@ game.States.test=function(){
     var beltStop=true;
     var ropeDir=true;
     var myTile;
-    var sPos=45;
+    var sPos=0;
     var water;
     var shark;
     var sharkSwim;
@@ -363,13 +363,16 @@ game.States.test=function(){
     function Swim(){
         if(shark.x>=57*50) {
             shark.curDir="left";
-            shark.body.velocity.x=-shark.speed;
             shark.frame = 3;
         }
         else if(shark.x<=48*50) {
             shark.curDir="right";
-            shark.body.velocity.x=shark.speed;
             shark.frame = 0;
+        }
+        if(shark.curDir=="left"){
+            shark.body.velocity.x=-shark.speed;
+        }else{
+            shark.body.velocity.x=shark.speed;
         }
     }
 }
