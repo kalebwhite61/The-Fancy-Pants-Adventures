@@ -37,6 +37,7 @@ game.States.preload = function() {
         game.load.image("dusty","assets/dusty.png",64,30);
         game.load.image("ground","assets/platform.png",400,32);
         game.load.image("movebar","assets/movebar.png",150,33);
+        game.load.image("waterdrop","assets/rain.png",17,17);
         //地图资源加载
         game.load.image("tile","assets/map/tileset.png");
         game.load.tilemap("mapone","assets/map/ground.json",null, Phaser.Tilemap.TILED_JSON);
@@ -116,6 +117,7 @@ game.States.test=function(){
         this.reverseFlag=flag;
         this.speed=speed;
         this.curDir=curDir;
+        this.state="";
     };
     //NPC对象
     function NPC(){
@@ -133,7 +135,7 @@ game.States.test=function(){
     var beltStop=true;
     var ropeDir=true;
     var myTile;
-    var sPos=0;
+    var sPos=54;
     var water;
     var shark;
     var sharkSwim;
@@ -147,6 +149,7 @@ game.States.test=function(){
 
         //玩家物理引擎配置
         player=game.add.sprite(sPos*50,game.world.height-170,"playerwalk",2);
+        player.alpha=0;
         Character.call(player,false);      //扩展玩家属性
         game.physics.arcade.enable(player);
         player.body.collideWorldBounds=true;
@@ -233,7 +236,7 @@ game.States.test=function(){
             Attack();
         }
         // if(game.input.keyboard.isDown(Phaser.Keyboard.BACKSPACE)){
-        //     sharkSwim.resume();
+        //     waterDrop();
         // }
 
         game.physics.arcade.collide(player,evilBoxGroup,reverseOperation);
@@ -341,23 +344,31 @@ game.States.test=function(){
         stoneGroup.create(36*50,9*50,"stone",6);
     }
     function Attack(){
+        shark.state="up";
         shark.speed=0;
         var ackDistance=shark.curDir=="right"?shark.x+2*50:shark.x-2*50;
         var ackAngle=shark.curDir=="right"?-5:5;
         var ackDir=shark.curDir=="right"?"rAttack":"lAttack";
-        var sharkAttack=game.add.tween(shark).to({x:ackDistance,y:game.world.height-130,angle:ackAngle},1000,Phaser.Easing.Elastic.In,true,0);
+        var sharkAttack=game.add.tween(shark).to({x:ackDistance,y:game.world.height-230,angle:ackAngle},1000,Phaser.Easing.Elastic.In,true,0);
         sharkAttack.onComplete.add(attackDown,this);
-        shark.animations.play(ackDir,4,true);
-
+        shark.animations.play(ackDir,8,true);
+        game.time.events.add(350,sharkJump,this);
+        game.time.events.add(900,waterDrop,this);
     }
     function attackDown(){
+        shark.state="down";
         var ackDistance=shark.curDir=="right"?shark.x+2*50:shark.x-2*50;
         var ackAngle=0;
         var sharkAttackDown=game.add.tween(shark).to({x:ackDistance,y:game.world.height-70,angle:ackAngle},1000,Phaser.Easing.Elastic.Out,true,0);
         sharkAttackDown.onComplete.add(reSwim,this);
+        game.time.events.add(300,waterDrop,this);
+        shark.frame=shark.curDir=="left"?3:0;
+    }
+    function sharkJump(){
+        shark.animations.stop();
+        shark.frame=shark.curDir=="left"?2:1;
     }
     function reSwim(){
-        shark.animations.stop();
         shark.speed=sharkSpeed;
     }
     function Swim(){
@@ -374,6 +385,23 @@ game.States.test=function(){
         }else{
             shark.body.velocity.x=shark.speed;
         }
+    }
+    function waterDrop(){
+        var waterDropX;
+        if(shark.state=="up")
+            waterDropX=shark.curDir=="right"?shark.centerX+60:shark.centerX-100;
+        else
+            waterDropX=shark.centerX;
+        var emitter = game.add.emitter(waterDropX,shark.centerY-50);
+        emitter.makeParticles('waterdrop');
+        //emitter.angularDrag=1000;
+        emitter.minParticleScale = 0.1;
+        emitter.maxParticleScale = 0.8;
+        emitter.setAlpha(0, 1,1200);
+        emitter.minParticleSpeed.setTo(-95, -110);
+        emitter.maxParticleSpeed.setTo(95, -210);
+        emitter.gravity = 400;
+        emitter.start(true, 500, 40,40);
     }
 }
 //开始页面
