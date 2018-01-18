@@ -38,6 +38,8 @@ game.States.preload = function() {
         game.load.image("ground","assets/platform.png",400,32);
         game.load.image("movebar","assets/movebar.png",150,33);
         game.load.image("waterdrop","assets/rain.png",17,17);
+        game.load.image("rope","assets/rope.png",10,480);
+        game.load.image("s-rope","assets/s-rope.png",10,240);
         //地图资源加载
         game.load.image("tile","assets/map/tileset.png");
         game.load.tilemap("mapone","assets/map/ground.json",null, Phaser.Tilemap.TILED_JSON);
@@ -125,7 +127,7 @@ game.States.test=function(){
     };
     var stoneGroup,evilBoxGroup;
     var player,cursors,map,groundLayer,belt,belt2,rope;
-    var stone=new Stone("hori")
+    var stone=new Stone("hori");
     var obstacleHorizontalMove,obstacleVerticalMove;
     var playerSpeed=100;
     var npcSpeed=100;
@@ -205,8 +207,6 @@ game.States.test=function(){
         shark.animations.add("rAttack",[0,1]);
         shark.animations.add('lAttack',[3,2]);
         game.physics.arcade.enable(shark);
-        // sharkAttack.chain(sharkAttackFinish);
-        // sharkAttack.start();
 
         water = game.add.tileSprite(48*50,game.world.height-65,23*50, 80, 'waters');
         water.animations.add('waves0', [0, 1, 2, 3, 2, 1]);
@@ -219,6 +219,11 @@ game.States.test=function(){
         water.animations.add('waves7', [28, 29, 30, 31, 30, 29]);
         var n = 7;                                                               //设置海水颜色
         water.animations.play('waves' + n, 8, true);
+        //摆动的绳子
+        rope=game.add.sprite(51*50,200,"s-rope");
+        rope.anchor.setTo(0.5,0);
+        rope.angle=30;
+        game.add.sprite(51*50,200,"s-rope");
 
 
         //键盘监听事件
@@ -317,18 +322,18 @@ game.States.test=function(){
             obj1.body.velocity.y=obj2.movespeed;
         obj1.x+=obj2.x-obj2.previousPosition.x;
     };
-    function playerMove(){
-
-    }
+    function Test(msg){
+        console.log("Msg:",msg);
+    };
     function reverseOperation(obj){
         if(obj.previousPosition.y-obj.body.y<-1)
             obj.reverseFlag=!obj.reverseFlag;
-    }
+    };
     //玩家死亡复活后重置属性恢复场景
     function resetConfig(){
         player.reverseFlag=false;
 
-    }
+    };
     function eleFactory(){
         if(stoneGroup!=undefined)
             stoneGroup.destroy();
@@ -342,7 +347,7 @@ game.States.test=function(){
         stoneGroup.create(33*50,7*50,"stone",6);
         stoneGroup.create(34*50,7*50,"stone",6);
         stoneGroup.create(36*50,9*50,"stone",6);
-    }
+    };
     function Attack(){
         shark.state="up";
         shark.speed=0;
@@ -354,7 +359,7 @@ game.States.test=function(){
         shark.animations.play(ackDir,8,true);
         game.time.events.add(350,sharkJump,this);
         game.time.events.add(900,waterDrop,this);
-    }
+    };
     function attackDown(){
         shark.state="down";
         var ackDistance=shark.curDir=="right"?shark.x+2*50:shark.x-2*50;
@@ -363,14 +368,14 @@ game.States.test=function(){
         sharkAttackDown.onComplete.add(reSwim,this);
         game.time.events.add(300,waterDrop,this);
         shark.frame=shark.curDir=="left"?3:0;
-    }
+    };
     function sharkJump(){
         shark.animations.stop();
         shark.frame=shark.curDir=="left"?2:1;
-    }
+    };
     function reSwim(){
         shark.speed=sharkSpeed;
-    }
+    };
     function Swim(){
         if(shark.x>=57*50) {
             shark.curDir="left";
@@ -385,23 +390,22 @@ game.States.test=function(){
         }else{
             shark.body.velocity.x=shark.speed;
         }
-    }
+    };
     function waterDrop(){
         var waterDropX;
         if(shark.state=="up")
             waterDropX=shark.curDir=="right"?shark.centerX+60:shark.centerX-100;
         else
             waterDropX=shark.centerX;
-        var emitter = game.add.emitter(waterDropX,shark.centerY-50);
+        var emitter = game.add.emitter(waterDropX,game.world.height-45);
         emitter.makeParticles('waterdrop');
-        //emitter.angularDrag=1000;
+        //emitter.angularDrag=100;
         emitter.minParticleScale = 0.1;
         emitter.maxParticleScale = 0.8;
         emitter.setAlpha(0, 1,1200);
-        emitter.minParticleSpeed.setTo(-95, -110);
-        emitter.maxParticleSpeed.setTo(95, -210);
-        emitter.gravity = 400;
-        emitter.start(true, 500, 40,40);
+        emitter.minParticleSpeed.setTo(-95, -10);
+        emitter.maxParticleSpeed.setTo(95, -70);
+        emitter.start(true, 500, 80,80);
     }
 }
 //开始页面
