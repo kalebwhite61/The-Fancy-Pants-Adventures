@@ -25,13 +25,13 @@ game.States.preload = function() {
     this.preload = function() {
         game.load.spritesheet("theme","assets/character.png",63,100);
         game.load.spritesheet("playerwalk","assets/walkset.png",31.666,48);
-        game.load.spritesheet("playerrun","assets/runset.png",41.333,45);
         game.load.spritesheet("belt","assets/belt.png",263,32);
         game.load.spritesheet("s-belt","assets/s-belt.png",119.5,32);
         game.load.spritesheet("belt_reverse","assets/belt.png",263,32);
         game.load.spritesheet("stone","assets/map/tileset.png",50,50);
         game.load.spritesheet('waters', 'assets/waters.png', 32, 400, 32);
         game.load.spritesheet('shark','assets/shark.png',150,92);
+        game.load.spritesheet('chain','assets/chain.png',16,26);
         game.load.image("startBtn","assets/startBtn.png",173,38);
         game.load.image("tree","assets/tree.png",142,156);
         game.load.image("dusty","assets/dusty.png",64,30);
@@ -120,6 +120,7 @@ game.States.test=function(){
         this.speed=speed;
         this.curDir=curDir;
         this.state="";
+        this.isClimb=false;
     };
     //NPC对象
     function NPC(){
@@ -136,12 +137,13 @@ game.States.test=function(){
     var playerMove=false;
     var beltStop=true;
     var ropeDir=true;
-    var myTile;
-    var sPos=54;
+    var angleStep=0.5;
+    var sPos=46;
     var water;
     var shark;
-    var sharkSwim;
+    var t_rope;
     var sharkSpeed=100;
+    var chain,chainone,chaintwo;
 
     this.create = function() {
         //开启物理引擎
@@ -149,9 +151,18 @@ game.States.test=function(){
         //启动页面背景色
         game.stage.backgroundColor="#ff9";
 
+        //锁链
+         chain=game.add.group();
+         chain.enableBody=true;
+        chaintwo.enableBody=true;
+        for(var i=0;i<7;i++){
+            chain.create(47*50+5,i*40+200,"chain",1);
+            chain.create(47*50+5,(i*2+1)*20+200,"chain",0);
+        }
+
         //玩家物理引擎配置
         player=game.add.sprite(sPos*50,game.world.height-170,"playerwalk",2);
-        player.alpha=0;
+       // player.alpha=0;
         Character.call(player,false);      //扩展玩家属性
         game.physics.arcade.enable(player);
         player.body.collideWorldBounds=true;
@@ -162,6 +173,7 @@ game.States.test=function(){
         var initAnimation=game.add.tween(player).to({x:(sPos+1)*50,y:game.world.height-player.height-50},1000,null,true);
         player.animations.add("leftMove",[8,9,10,11,12]);
         player.animations.add("rightMove",[3,4,5,6,7]);
+        player.animations.add("climb",[13,14]);
 
         //地图资源加载
         map = game.add.tilemap('mapone');
@@ -222,9 +234,9 @@ game.States.test=function(){
         //摆动的绳子
         rope=game.add.sprite(51*50,200,"s-rope");
         rope.anchor.setTo(0.5,0);
-        rope.angle=30;
-        game.add.sprite(51*50,200,"s-rope");
 
+      //  t_rope=game.add.sprite(51*50,200,"s-rope").anchor.setTo(0.5,0);
+         t_rope=game.add.image(51*50,200,"s-rope").anchor.setTo(0.5,0);
 
         //键盘监听事件
         cursors=game.input.keyboard.createCursorKeys();
@@ -240,23 +252,35 @@ game.States.test=function(){
         if(game.input.keyboard.isDown(Phaser.Keyboard.SPACEBAR)){
             Attack();
         }
-        // if(game.input.keyboard.isDown(Phaser.Keyboard.BACKSPACE)){
-        //     waterDrop();
+        // if(game.input.keyboard.isDown(Phaser.Keyboard.T)){
+        //     player.isClimb=true;
         // }
-
+        // if(game.input.keyboard.isDown(Phaser.Keyboard.C)){
+        //     player.isClimb=false;
+        // }
         game.physics.arcade.collide(player,evilBoxGroup,reverseOperation);
         game.physics.arcade.collide(player,stoneGroup);
         game.physics.arcade.collide(player,groundLayer,null);
         game.physics.arcade.collide(player,obstacleHorizontalMove,syncMove);
         game.physics.arcade.collide(player,obstacleVerticalMove,syncMove);
-        game.physics.arcade.collide(player,stone,stoneMove);
+        //game.physics.arcade.overlap(player,chain,climbChain);
+        game.physics.arcade.overlap(player,chainone,climbChain);
+        game.physics.arcade.overlap(player,chaintwo,climbChain);
         var beltAction=game.physics.arcade.collide(player,belt);
         var beltLeftAction=game.physics.arcade.collide(player,belt2);
-
-        //恢复正常操作
+        //玩家恢复正常操作
         if((player.x<=20*50||player.x+player.width>=45*50)&&player.body.onFloor())
             resetConfig();
-
+        //绳子摆动方向
+        if(ropeDir){
+            rope.angle+=angleStep;
+            if(rope.angle==30)
+                ropeDir=false;
+        }else{
+            rope.angle-=angleStep;
+            if(rope.angle==-30)
+                ropeDir=true;
+        }
         playerSpeed=player.reverseFlag?-Math.abs(playerSpeed):Math.abs(playerSpeed);
         if(cursors.left.isDown){
             if(player.body.touching.down||player.body.onFloor()){
@@ -285,9 +309,11 @@ game.States.test=function(){
                 player.body.velocity.x-=npcSpeed/2;
             player.stick=false;
         }else{
-            player.animations.stop();
-            if(playerMove)
-                player.frame=0;
+            if(!player.isClimb){
+                player.animations.stop();
+                if(playerMove)
+                    player.frame=0;
+            }
             player.body.velocity.x=0;
             if(beltAction)
                 player.body.velocity.x+=npcSpeed/2;
@@ -295,8 +321,13 @@ game.States.test=function(){
                 player.body.velocity.x-=npcSpeed/2;
             player.stick=true;
         };
-        if(cursors.up.isDown&&(player.body.touching.down||player.body.onFloor())){
-            player.body.velocity.y=playerJump;
+        if(cursors.up.isDown){
+            if(true){
+                player.animations.play("climb",6,true);
+                player.body.velocity.y=-playerSpeed;
+            }
+            if(player.body.touching.down||player.body.onFloor())
+                player.body.velocity.y=playerJump;
         };
         if(player.body.touching.down||player.body.onFloor()){
             beltStop=false;
@@ -314,8 +345,8 @@ game.States.test=function(){
         eleFactory();
         resetConfig();
     };
-    function stoneMove(obj1,obj2){
-
+    function climbChain(){
+        console.log("Climb...");
     };
     function syncMove(obj1,obj2) {
         if(obj2.movestyle=="vertical")
