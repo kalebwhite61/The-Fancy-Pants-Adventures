@@ -128,7 +128,6 @@ game.States.test=function(){
     };
     var stoneGroup,evilBoxGroup;
     var player,cursors,map,groundLayer,belt,belt2,rope;
-    var stone=new Stone("hori");
     var obstacleHorizontalMove,obstacleVerticalMove;
     var playerSpeed=100;
     var npcSpeed=100;
@@ -143,7 +142,7 @@ game.States.test=function(){
     var shark;
     var t_rope;
     var sharkSpeed=100;
-    var chain,chainone,chaintwo;
+    var chain,baseHeight,baseWidth;
 
     this.create = function() {
         //开启物理引擎
@@ -152,13 +151,16 @@ game.States.test=function(){
         game.stage.backgroundColor="#ff9";
 
         //锁链
-         chain=game.add.group();
-         chain.enableBody=true;
-        chaintwo.enableBody=true;
+        chain=game.add.group();
+        chain.enableBody=true;
+        //chain.anchor.setTo(0.5,0);
+        chain.position={x:48*50,y:200};
         for(var i=0;i<7;i++){
-            chain.create(47*50+5,i*40+200,"chain",1);
-            chain.create(47*50+5,(i*2+1)*20+200,"chain",0);
+            chain.create(0,(i*2+1)*20,"chain",0).anchor.setTo(0.5,0);
+            chain.create(0,i*40,"chain",1).anchor.setTo(0.5,0);
         }
+        baseWidth=chain.width;
+        baseHeight=chain.height;
 
         //玩家物理引擎配置
         player=game.add.sprite(sPos*50,game.world.height-170,"playerwalk",2);
@@ -167,6 +169,7 @@ game.States.test=function(){
         game.physics.arcade.enable(player);
         player.body.collideWorldBounds=true;
         player.body.gravity.y=gravity;
+        player.anchor.setTo(0.5,0);
         //摄像机跟随
         game.camera.follow(player);
         //玩家动画效果
@@ -246,15 +249,22 @@ game.States.test=function(){
         },this);
     };
     this.update =function () {
+        console.log();
+       // chain.angle+=1;
+       // chain.angle+=angleStep;
         //鲨鱼游泳
         Swim();
         //信息调试
         if(game.input.keyboard.isDown(Phaser.Keyboard.SPACEBAR)){
             Attack();
         }
-        // if(game.input.keyboard.isDown(Phaser.Keyboard.T)){
-        //     player.isClimb=true;
-        // }
+        if(game.input.keyboard.isDown(Phaser.Keyboard.T)){
+            // console.log("chain:",chain.position);
+            // console.log("player:",player.position);
+            // console.log("cursorIndex",chain.cursorIndex);
+            // console.log("amount",chain.length);
+            //console.log(chain.getChildAt(4));
+        }
         // if(game.input.keyboard.isDown(Phaser.Keyboard.C)){
         //     player.isClimb=false;
         // }
@@ -263,9 +273,7 @@ game.States.test=function(){
         game.physics.arcade.collide(player,groundLayer,null);
         game.physics.arcade.collide(player,obstacleHorizontalMove,syncMove);
         game.physics.arcade.collide(player,obstacleVerticalMove,syncMove);
-        //game.physics.arcade.overlap(player,chain,climbChain);
-        game.physics.arcade.overlap(player,chainone,climbChain);
-        game.physics.arcade.overlap(player,chaintwo,climbChain);
+        player.isClimb=game.physics.arcade.overlap(player,chain,climbChain);
         var beltAction=game.physics.arcade.collide(player,belt);
         var beltLeftAction=game.physics.arcade.collide(player,belt2);
         //玩家恢复正常操作
@@ -273,13 +281,25 @@ game.States.test=function(){
             resetConfig();
         //绳子摆动方向
         if(ropeDir){
+            chain.angle+=angleStep;
             rope.angle+=angleStep;
             if(rope.angle==30)
                 ropeDir=false;
         }else{
+            chain.angle-=angleStep;
             rope.angle-=angleStep;
             if(rope.angle==-30)
                 ropeDir=true;
+        }
+
+        console.log("X:",baseHeight*(Math.sin(chain.angle*Math.PI/180)-Math.sin((chain.angle-0.5)*Math.PI/180)));
+        console.log("y:",baseHeight*(Math.cos(chain.angle*Math.PI/180)-Math.cos((chain.angle-0.5)*Math.PI/180)));
+
+        if(player.isClimb){
+            player.angle=chain.angle;
+            chain.forEach(Test,this);
+        }else{
+            player.angle=0;
         }
         playerSpeed=player.reverseFlag?-Math.abs(playerSpeed):Math.abs(playerSpeed);
         if(cursors.left.isDown){
@@ -322,12 +342,31 @@ game.States.test=function(){
             player.stick=true;
         };
         if(cursors.up.isDown){
-            if(true){
+            if(player.isClimb){
                 player.animations.play("climb",6,true);
                 player.body.velocity.y=-playerSpeed;
+                //跳跃离开锁链
+                if(cursors.left.isDown||cursors.right.isDown){
+                    resetConfig();
+                    player.body.velocity.y=playerJump;
+                }
             }
             if(player.body.touching.down||player.body.onFloor())
                 player.body.velocity.y=playerJump;
+        }else if(cursors.down.isDown) {
+            if(player.isClimb) {
+                player.body.velocity.y=-playerJump;
+                player.animations.play("climb",6,true);
+            }
+        }else {
+            if(player.isClimb){
+                player.animations.stop("climb");
+                player.body.gravity.y=0;
+                player.body.velocity.y=0;
+                player.frame=13;
+            }else{
+                resetConfig();
+            }
         };
         if(player.body.touching.down||player.body.onFloor()){
             beltStop=false;
@@ -346,15 +385,23 @@ game.States.test=function(){
         resetConfig();
     };
     function climbChain(){
-        console.log("Climb...");
+        player.isClimb=true;
     };
     function syncMove(obj1,obj2) {
         if(obj2.movestyle=="vertical")
             obj1.body.velocity.y=obj2.movespeed;
         obj1.x+=obj2.x-obj2.previousPosition.x;
     };
-    function Test(msg){
-        console.log("Msg:",msg);
+    function Test(chainPart){
+        var stick=game.physics.arcade.overlap(player,chainPart);
+        if(stick){
+            var pos={};
+            var index=chain.getIndex(chainPart);
+            pos.x=8;
+            pos.y=9;
+            console.log(index,"pos:",pos);
+            return true;
+        }
     };
     function reverseOperation(obj){
         if(obj.previousPosition.y-obj.body.y<-1)
@@ -363,6 +410,8 @@ game.States.test=function(){
     //玩家死亡复活后重置属性恢复场景
     function resetConfig(){
         player.reverseFlag=false;
+        player.body.gravity.y=gravity;
+        player.isClimb=false;
 
     };
     function eleFactory(){
