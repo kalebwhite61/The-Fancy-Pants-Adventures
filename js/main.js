@@ -162,6 +162,15 @@ game.States.test=function(){
         baseWidth=chain.width;
         baseHeight=chain.height;
 
+        var chain1=game.add.group();
+        chain1.enableBody=true;
+        //chain.anchor.setTo(0.5,0);
+        chain1.position={x:53*50,y:200};
+        for(var i=0;i<7;i++){
+            chain1.create(0,(i*2+1)*20,"chain",0).anchor.setTo(0.5,0);
+            chain1.create(0,i*40,"chain",1).anchor.setTo(0.5,0);
+        }
+
         //玩家物理引擎配置
         player=game.add.sprite(sPos*50,game.world.height-170,"playerwalk",2);
        // player.alpha=0;
@@ -235,11 +244,12 @@ game.States.test=function(){
         var n = 7;                                                               //设置海水颜色
         water.animations.play('waves' + n, 8, true);
         //摆动的绳子
-        rope=game.add.sprite(51*50,200,"s-rope");
+        rope=game.add.sprite(52*50,200,"s-rope");
         rope.anchor.setTo(0.5,0);
+        rope.alpha=0;
 
       //  t_rope=game.add.sprite(51*50,200,"s-rope").anchor.setTo(0.5,0);
-         t_rope=game.add.image(51*50,200,"s-rope").anchor.setTo(0.5,0);
+         //t_rope=game.add.image(51*50,200,"s-rope").anchor.setTo(0.5,0);
 
         //键盘监听事件
         cursors=game.input.keyboard.createCursorKeys();
@@ -279,14 +289,16 @@ game.States.test=function(){
         //玩家恢复正常操作
         if((player.x<=20*50||player.x+player.width>=45*50)&&player.body.onFloor())
             resetConfig();
-        //绳子摆动方向
+        // //绳子摆动方向
         if(ropeDir){
-            chain.angle+=angleStep;
+            //chain.angle+=angleStep;
+            chain1.angle+=angleStep;
             rope.angle+=angleStep;
             if(rope.angle==30)
                 ropeDir=false;
         }else{
-            chain.angle-=angleStep;
+            //chain.angle-=angleStep;
+            chain2.angle+=angleStep;
             rope.angle-=angleStep;
             if(rope.angle==-30)
                 ropeDir=true;
