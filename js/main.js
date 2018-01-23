@@ -140,6 +140,7 @@ game.States.test=function(){
     var t_rope;
     var sharkSpeed=100;
     var chain,baseHeight,baseWidth;
+    var bakeFlag=true;
 
     this.create = function() {
         //开启物理引擎
@@ -272,10 +273,12 @@ game.States.test=function(){
             // console.log("amount",chain.length);
             //console.log(chain.getChildAt(4));
            // chain.alignIn(player,Phaser.BOTTOM_LEFT);
-            player.x=0;
-            player.y=0;
-            chain.add(player);
-            player.isClimb=true;
+            if(!chain.contains(player)){
+                player.x=0;
+                player.y=0;
+                chain.add(player);
+            }
+            //player.isClimb=true;
            // player.alignIn(chain.getChildAt(3),Phaser.CENTER,48*50-20,200);
             //player.alignIn(chain.getChildAt(3),Phaser.CENTER,-20,50);
             //player.x=chain.getChildAt(3).previousPosition.x-16;
@@ -284,7 +287,14 @@ game.States.test=function(){
             //console.log(chain.getChildAt(4).x,chain.getChildAt(4).y);
         }
          if(game.input.keyboard.isDown(Phaser.Keyboard.C)){
-             chain.remove(player,true);
+            if(bakeFlag){
+               // var bake=player;
+                chain.remove(player,false,true);
+              // var player1=bake;
+                //console.log(chain.removeFromHash(player));
+                console.log("Done...");
+            }
+            bakeFlag=false;
          }
         game.physics.arcade.collide(player,evilBoxGroup,reverseOperation);
         game.physics.arcade.collide(player,stoneGroup);
@@ -430,7 +440,6 @@ game.States.test=function(){
         player.reverseFlag=false;
         player.body.gravity.y=gravity;
         player.isClimb=false;
-
     };
     function eleFactory(){
         if(stoneGroup!=undefined)
