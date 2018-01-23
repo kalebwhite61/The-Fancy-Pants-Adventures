@@ -103,9 +103,6 @@ game.States.P2World=function(){
             player.body.moveDown(400);
         }
     };
-    this.render=function(){
-
-    }
 };
 //Arcade功能测试页面
 game.States.test=function(){
@@ -248,8 +245,8 @@ game.States.test=function(){
         rope.anchor.setTo(0.5,0);
         rope.alpha=0;
 
-      //  t_rope=game.add.sprite(51*50,200,"s-rope").anchor.setTo(0.5,0);
-         //t_rope=game.add.image(51*50,200,"s-rope").anchor.setTo(0.5,0);
+        //  t_rope=game.add.sprite(51*50,200,"s-rope").anchor.setTo(0.5,0);
+        //t_rope=game.add.image(51*50,200,"s-rope").anchor.setTo(0.5,0);
 
         //键盘监听事件
         cursors=game.input.keyboard.createCursorKeys();
@@ -274,10 +271,21 @@ game.States.test=function(){
             // console.log("cursorIndex",chain.cursorIndex);
             // console.log("amount",chain.length);
             //console.log(chain.getChildAt(4));
+           // chain.alignIn(player,Phaser.BOTTOM_LEFT);
+            player.x=0;
+            player.y=0;
+            chain.add(player);
+            player.isClimb=true;
+           // player.alignIn(chain.getChildAt(3),Phaser.CENTER,48*50-20,200);
+            //player.alignIn(chain.getChildAt(3),Phaser.CENTER,-20,50);
+            //player.x=chain.getChildAt(3).previousPosition.x-16;
+           // player.y=chain.getChildAt(3).previousPosition.y+chain.getChildAt(3).deltaY();
+            //console.log(chain.getChildAt(3).x,chain.getChildAt(3).y);
+            //console.log(chain.getChildAt(4).x,chain.getChildAt(4).y);
         }
-        // if(game.input.keyboard.isDown(Phaser.Keyboard.C)){
-        //     player.isClimb=false;
-        // }
+         if(game.input.keyboard.isDown(Phaser.Keyboard.C)){
+             chain.remove(player,true);
+         }
         game.physics.arcade.collide(player,evilBoxGroup,reverseOperation);
         game.physics.arcade.collide(player,stoneGroup);
         game.physics.arcade.collide(player,groundLayer,null);
@@ -291,28 +299,19 @@ game.States.test=function(){
             resetConfig();
         // //绳子摆动方向
         if(ropeDir){
-            //chain.angle+=angleStep;
-            chain1.angle+=angleStep;
+            chain.angle+=angleStep;
+            //chain1.angle+=angleStep;
             rope.angle+=angleStep;
             if(rope.angle==30)
                 ropeDir=false;
         }else{
-            //chain.angle-=angleStep;
-            chain2.angle+=angleStep;
+            chain.angle-=angleStep;
+           // chain1.angle+=angleStep;
             rope.angle-=angleStep;
             if(rope.angle==-30)
                 ropeDir=true;
         }
 
-        console.log("X:",baseHeight*(Math.sin(chain.angle*Math.PI/180)-Math.sin((chain.angle-0.5)*Math.PI/180)));
-        console.log("y:",baseHeight*(Math.cos(chain.angle*Math.PI/180)-Math.cos((chain.angle-0.5)*Math.PI/180)));
-
-        if(player.isClimb){
-            player.angle=chain.angle;
-            chain.forEach(Test,this);
-        }else{
-            player.angle=0;
-        }
         playerSpeed=player.reverseFlag?-Math.abs(playerSpeed):Math.abs(playerSpeed);
         if(cursors.left.isDown){
             if(player.body.touching.down||player.body.onFloor()){
@@ -361,6 +360,9 @@ game.States.test=function(){
                 if(cursors.left.isDown||cursors.right.isDown){
                     resetConfig();
                     player.body.velocity.y=playerJump;
+                    var bake=player;
+                   // chain.remove(player);
+                    player=bake;
                 }
             }
             if(player.body.touching.down||player.body.onFloor())
@@ -383,6 +385,10 @@ game.States.test=function(){
         if(player.body.touching.down||player.body.onFloor()){
             beltStop=false;
         }
+    };
+    this.render=function () {
+        game.debug.spriteBounds(player);
+        game.debug.spriteInfo(player, 32, 32,"black");
     };
     function gameOver(){
         var reviveX=player.x;
@@ -411,7 +417,7 @@ game.States.test=function(){
             var index=chain.getIndex(chainPart);
             pos.x=8;
             pos.y=9;
-            console.log(index,"pos:",pos);
+          //  console.log(index,"pos:",pos);
             return true;
         }
     };
@@ -434,7 +440,6 @@ game.States.test=function(){
         for(var i =0;i<3;i++) {
             stoneGroup.create((8 + i*2) * 50, (10-i)* 50, "stone", 6);
         }
-
         stoneGroup.create(31*50,9*50,"stone",6);
         stoneGroup.create(33*50,7*50,"stone",6);
         stoneGroup.create(34*50,7*50,"stone",6);
