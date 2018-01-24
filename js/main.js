@@ -71,9 +71,9 @@ game.States.P2World=function(){
         p2Hill=game.add.sprite(400,game.world.height-165,"ground");
         game.physics.p2.enable(p2Hill);
         p2Hill.body.angle=-50;
-       // p2Hill.body.motionState=Phaser.Physics.P2.Body.DYNAMIC;
+        // p2Hill.body.motionState=Phaser.Physics.P2.Body.DYNAMIC;
         p2Hill.body.motionState=Phaser.Physics.P2.Body.STATIC;
-       // p2Hill.body.motionState=Phaser.Physics.P2.Body.KINEMATIC;
+        // p2Hill.body.motionState=Phaser.Physics.P2.Body.KINEMATIC;
         //player.body.setSize(100,100);
         p2Hill.body.kinematic=true;
 
@@ -134,13 +134,12 @@ game.States.test=function(){
     var beltStop=true;
     var ropeDir=true;
     var angleStep=0.5;
-    var sPos=46;
+    var sPos=45;
     var water;
     var shark;
-    var t_rope;
     var sharkSpeed=100;
     var chain,baseHeight,baseWidth;
-    var bakeFlag=true;
+    var chainFlag=true;
 
     this.create = function() {
         //开启物理引擎
@@ -151,7 +150,6 @@ game.States.test=function(){
         //锁链
         chain=game.add.group();
         chain.enableBody=true;
-        //chain.anchor.setTo(0.5,0);
         chain.position={x:48*50,y:200};
         for(var i=0;i<7;i++){
             chain.create(0,(i*2+1)*20,"chain",0).anchor.setTo(0.5,0);
@@ -171,7 +169,7 @@ game.States.test=function(){
 
         //玩家物理引擎配置
         player=game.add.sprite(sPos*50,game.world.height-170,"playerwalk",2);
-       // player.alpha=0;
+        // player.alpha=0;
         Character.call(player,false);      //扩展玩家属性
         game.physics.arcade.enable(player);
         player.body.collideWorldBounds=true;
@@ -246,9 +244,6 @@ game.States.test=function(){
         rope.anchor.setTo(0.5,0);
         rope.alpha=0;
 
-        //  t_rope=game.add.sprite(51*50,200,"s-rope").anchor.setTo(0.5,0);
-        //t_rope=game.add.image(51*50,200,"s-rope").anchor.setTo(0.5,0);
-
         //键盘监听事件
         cursors=game.input.keyboard.createCursorKeys();
         initAnimation.onComplete.add(function () {
@@ -258,8 +253,8 @@ game.States.test=function(){
     };
     this.update =function () {
         console.log();
-       // chain.angle+=1;
-       // chain.angle+=angleStep;
+        // chain.angle+=1;
+        // chain.angle+=angleStep;
         //鲨鱼游泳
         Swim();
         //信息调试
@@ -267,35 +262,20 @@ game.States.test=function(){
             Attack();
         }
         if(game.input.keyboard.isDown(Phaser.Keyboard.T)){
-            // console.log("chain:",chain.position);
-            // console.log("player:",player.position);
-            // console.log("cursorIndex",chain.cursorIndex);
-            // console.log("amount",chain.length);
-            //console.log(chain.getChildAt(4));
-           // chain.alignIn(player,Phaser.BOTTOM_LEFT);
             if(!chain.contains(player)){
                 player.x=0;
                 player.y=0;
                 chain.add(player);
             }
-            //player.isClimb=true;
-           // player.alignIn(chain.getChildAt(3),Phaser.CENTER,48*50-20,200);
-            //player.alignIn(chain.getChildAt(3),Phaser.CENTER,-20,50);
-            //player.x=chain.getChildAt(3).previousPosition.x-16;
-           // player.y=chain.getChildAt(3).previousPosition.y+chain.getChildAt(3).deltaY();
-            //console.log(chain.getChildAt(3).x,chain.getChildAt(3).y);
-            //console.log(chain.getChildAt(4).x,chain.getChildAt(4).y);
         }
-         if(game.input.keyboard.isDown(Phaser.Keyboard.C)){
-            if(bakeFlag){
-               // var bake=player;
-                chain.remove(player,false,true);
-              // var player1=bake;
-                //console.log(chain.removeFromHash(player));
-                console.log("Done...");
+        if(game.input.keyboard.isDown(Phaser.Keyboard.C)){
+            if(chainFlag){
+                player.parent=game.world;
+                player.x=player.previousPosition.x;
+                player.y=player.previousPosition.y;
             }
-            bakeFlag=false;
-         }
+            chainFlag=false;
+        }
         game.physics.arcade.collide(player,evilBoxGroup,reverseOperation);
         game.physics.arcade.collide(player,stoneGroup);
         game.physics.arcade.collide(player,groundLayer,null);
@@ -316,7 +296,7 @@ game.States.test=function(){
                 ropeDir=false;
         }else{
             chain.angle-=angleStep;
-           // chain1.angle+=angleStep;
+            // chain1.angle+=angleStep;
             rope.angle-=angleStep;
             if(rope.angle==-30)
                 ropeDir=true;
@@ -370,9 +350,13 @@ game.States.test=function(){
                 if(cursors.left.isDown||cursors.right.isDown){
                     resetConfig();
                     player.body.velocity.y=playerJump;
-                    var bake=player;
-                   // chain.remove(player);
-                    player=bake;
+
+                    if(!chainFlag){
+                        player.parent=game.world;
+                        player.x=player.previousPosition.x;
+                        player.y=player.previousPosition.y;
+                        chainFlag=true;
+                    }
                 }
             }
             if(player.body.touching.down||player.body.onFloor())
@@ -427,7 +411,7 @@ game.States.test=function(){
             var index=chain.getIndex(chainPart);
             pos.x=8;
             pos.y=9;
-          //  console.log(index,"pos:",pos);
+            //  console.log(index,"pos:",pos);
             return true;
         }
     };
@@ -646,7 +630,7 @@ game.States.main = function() {
         //根据地图大小，重新设置游戏世界大小
         groundLayer.resizeWorld();
         // 设置tile碰撞
-         map.setCollisionBetween(0, 8);
+        map.setCollisionBetween(0, 8);
         // map.setCollisionBetween(20, 25);
         // map.setCollisionBetween(27, 29);
         // map.setCollision(40);
@@ -714,7 +698,7 @@ game.States.main = function() {
             player.frame=0;
             playerMove=true;
         },this);
-     };
+    };
     this.update =function () {
         game.physics.arcade.collide(player,groundLayer,null);
         game.physics.arcade.collide(player,obstacleHorizontalMove,this.syncMove);

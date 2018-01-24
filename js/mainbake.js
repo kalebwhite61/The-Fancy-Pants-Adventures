@@ -103,9 +103,6 @@ game.States.P2World=function(){
             player.body.moveDown(400);
         }
     };
-    this.render=function(){
-
-    }
 };
 //Arcade功能测试页面
 game.States.test=function(){
@@ -128,7 +125,6 @@ game.States.test=function(){
     };
     var stoneGroup,evilBoxGroup;
     var player,cursors,map,groundLayer,belt,belt2,rope;
-    var stone=new Stone("hori");
     var obstacleHorizontalMove,obstacleVerticalMove;
     var playerSpeed=100;
     var npcSpeed=100;
@@ -138,13 +134,12 @@ game.States.test=function(){
     var beltStop=true;
     var ropeDir=true;
     var angleStep=0.5;
-    var sPos=46;
+    var sPos=45;
     var water;
     var shark;
-    var t_rope;
     var sharkSpeed=100;
-    var time_step;
-    var playerTest;
+    var chain,baseHeight,baseWidth;
+    var chainFlag=true;
 
     this.create = function() {
         //开启物理引擎
@@ -153,11 +148,24 @@ game.States.test=function(){
         game.stage.backgroundColor="#ff9";
 
         //锁链
-        var chainone=game.add.group();
-        var chaintwo=game.add.group();
+        chain=game.add.group();
+        chain.enableBody=true;
+        //chain.anchor.setTo(0.5,0);
+        chain.position={x:48*50,y:200};
         for(var i=0;i<7;i++){
-            chaintwo.create(47*50+5,i*40+200,"chain",1);
-            chainone.create(47*50+5,(i*2+1)*20+200,"chain",0);
+            chain.create(0,(i*2+1)*20,"chain",0).anchor.setTo(0.5,0);
+            chain.create(0,i*40,"chain",1).anchor.setTo(0.5,0);
+        }
+        baseWidth=chain.width;
+        baseHeight=chain.height;
+
+        var chain1=game.add.group();
+        chain1.enableBody=true;
+        //chain.anchor.setTo(0.5,0);
+        chain1.position={x:53*50,y:200};
+        for(var i=0;i<7;i++){
+            chain1.create(0,(i*2+1)*20,"chain",0).anchor.setTo(0.5,0);
+            chain1.create(0,i*40,"chain",1).anchor.setTo(0.5,0);
         }
 
         //玩家物理引擎配置
@@ -167,6 +175,7 @@ game.States.test=function(){
         game.physics.arcade.enable(player);
         player.body.collideWorldBounds=true;
         player.body.gravity.y=gravity;
+        player.anchor.setTo(0.5,0);
         //摄像机跟随
         game.camera.follow(player);
         //玩家动画效果
@@ -232,11 +241,12 @@ game.States.test=function(){
         var n = 7;                                                               //设置海水颜色
         water.animations.play('waves' + n, 8, true);
         //摆动的绳子
-        rope=game.add.sprite(51*50,200,"s-rope");
+        rope=game.add.sprite(52*50,200,"s-rope");
         rope.anchor.setTo(0.5,0);
+        rope.alpha=0;
 
         //  t_rope=game.add.sprite(51*50,200,"s-rope").anchor.setTo(0.5,0);
-        t_rope=game.add.image(51*50,200,"s-rope").anchor.setTo(0.5,0);
+        //t_rope=game.add.image(51*50,200,"s-rope").anchor.setTo(0.5,0);
 
         //键盘监听事件
         cursors=game.input.keyboard.createCursorKeys();
@@ -246,49 +256,56 @@ game.States.test=function(){
         },this);
     };
     this.update =function () {
+        console.log();
+        // chain.angle+=1;
+        // chain.angle+=angleStep;
         //鲨鱼游泳
         Swim();
         //信息调试
         if(game.input.keyboard.isDown(Phaser.Keyboard.SPACEBAR)){
             Attack();
         }
-        if(game.input.keyboard.isDown(Phaser.Keyboard.W)){
-            player.animations.play("climb",6,true);
-            player.body.velocity.y=-playerSpeed;
-        }else if(game.input.keyboard.isDown(Phaser.Keyboard.S)){
-            player.animations.play("climb",6,true);
-            player.body.velocity.y=playerSpeed;
-        }else{
-            player.frame=0;
-            player.body.velocity.y=0;
-        }
         if(game.input.keyboard.isDown(Phaser.Keyboard.T)){
-            player.isClimb=true;
+            if(chainFlag&&!chain.contains(player)){
+                player.x=0;
+                player.y=0;
+                chain.add(player);
+                chainFlag=false;
+            }
         }
-        if(game.input.keyboard.isDown(Phaser.Keyboard.R)){
-            player.isClimb=false;
+        if(game.input.keyboard.isDown(Phaser.Keyboard.C)){
+            if(chain.contains(player)){
+                player.parent=game.world;
+                player.x=0;
+                player.y=player.previousPosition.y;
+            }
         }
         game.physics.arcade.collide(player,evilBoxGroup,reverseOperation);
         game.physics.arcade.collide(player,stoneGroup);
         game.physics.arcade.collide(player,groundLayer,null);
         game.physics.arcade.collide(player,obstacleHorizontalMove,syncMove);
         game.physics.arcade.collide(player,obstacleVerticalMove,syncMove);
-        game.physics.arcade.collide(player,stone,stoneMove);
+        player.isClimb=game.physics.arcade.overlap(player,chain,climbChain);
         var beltAction=game.physics.arcade.collide(player,belt);
         var beltLeftAction=game.physics.arcade.collide(player,belt2);
         //玩家恢复正常操作
         if((player.x<=20*50||player.x+player.width>=45*50)&&player.body.onFloor())
             resetConfig();
-        //绳子摆动方向
+        // //绳子摆动方向
         if(ropeDir){
+            chain.angle+=angleStep;
+            //chain1.angle+=angleStep;
             rope.angle+=angleStep;
             if(rope.angle==30)
                 ropeDir=false;
         }else{
+            chain.angle-=angleStep;
+            // chain1.angle+=angleStep;
             rope.angle-=angleStep;
             if(rope.angle==-30)
                 ropeDir=true;
         }
+
         playerSpeed=player.reverseFlag?-Math.abs(playerSpeed):Math.abs(playerSpeed);
         if(cursors.left.isDown){
             if(player.body.touching.down||player.body.onFloor()){
@@ -317,29 +334,56 @@ game.States.test=function(){
                 player.body.velocity.x-=npcSpeed/2;
             player.stick=false;
         }else{
-
-            player.animations.stop();
-            if(playerMove)
-                player.frame=0;
+            if(!player.isClimb){
+                player.animations.stop();
+                if(playerMove)
+                    player.frame=0;
+            }
             player.body.velocity.x=0;
             if(beltAction)
                 player.body.velocity.x+=npcSpeed/2;
             if(beltLeftAction)
                 player.body.velocity.x-=npcSpeed/2;
             player.stick=true;
-
         };
         if(cursors.up.isDown){
             if(player.isClimb){
                 player.animations.play("climb",6,true);
                 player.body.velocity.y=-playerSpeed;
+                //跳跃离开锁链
+                if(cursors.left.isDown||cursors.right.isDown){
+                    resetConfig();
+                    player.body.velocity.y=playerJump;
+                    player.parent=game.world;
+                    player.x=player.previousPosition.x;
+                    player.y=player.previousPosition.y;
+                    player.isClimb=false;
+                }
             }
             if(player.body.touching.down||player.body.onFloor())
                 player.body.velocity.y=playerJump;
+        }else if(cursors.down.isDown) {
+            if(player.isClimb) {
+                player.body.velocity.y=-playerJump;
+                player.animations.play("climb",6,true);
+            }
+        }else {
+            if(player.isClimb){
+                player.animations.stop("climb");
+                player.body.gravity.y=0;
+                player.body.velocity.y=0;
+                player.frame=13;
+            }else{
+                resetConfig();
+            }
         };
         if(player.body.touching.down||player.body.onFloor()){
             beltStop=false;
         }
+    };
+    this.render=function () {
+        game.debug.spriteBounds(player);
+        game.debug.spriteInfo(player, 32, 32,"black");
     };
     function gameOver(){
         var reviveX=player.x;
@@ -353,7 +397,15 @@ game.States.test=function(){
         eleFactory();
         resetConfig();
     };
-    function stoneMove(obj1,obj2){
+    function climbChain(){
+        player.isClimb=true;
+        //人物添加到组,即爬锁
+        if(chainFlag&&!chain.contains(player)){
+            player.x=0;
+            player.y=0;
+            chain.add(player);
+            chainFlag=false;
+        }
 
     };
     function syncMove(obj1,obj2) {
@@ -361,8 +413,8 @@ game.States.test=function(){
             obj1.body.velocity.y=obj2.movespeed;
         obj1.x+=obj2.x-obj2.previousPosition.x;
     };
-    function Test(msg){
-        console.log("Msg:",msg);
+    function Test(chainPart){
+
     };
     function reverseOperation(obj){
         if(obj.previousPosition.y-obj.body.y<-1)
@@ -371,7 +423,9 @@ game.States.test=function(){
     //玩家死亡复活后重置属性恢复场景
     function resetConfig(){
         player.reverseFlag=false;
-
+        player.body.gravity.y=gravity;
+        player.isClimb=false;
+        chainFlag=true;
     };
     function eleFactory(){
         if(stoneGroup!=undefined)
@@ -381,7 +435,6 @@ game.States.test=function(){
         for(var i =0;i<3;i++) {
             stoneGroup.create((8 + i*2) * 50, (10-i)* 50, "stone", 6);
         }
-
         stoneGroup.create(31*50,9*50,"stone",6);
         stoneGroup.create(33*50,7*50,"stone",6);
         stoneGroup.create(34*50,7*50,"stone",6);
