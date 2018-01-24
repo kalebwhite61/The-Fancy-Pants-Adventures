@@ -273,6 +273,17 @@ game.States.test=function(){
                 chainFlag=false;
             }
         }
+        //玩家爬锁位置刷新
+        if(player.isClimb){
+            if(chainFlag){
+                player.x=player.x-chain.x;
+                player.y=player.y-chain.y;
+                chain.add(player);
+                chainFlag=false;
+            }else{
+                player.x=-13.5;
+            }
+        }
         game.physics.arcade.collide(player,evilBoxGroup,reverseOperation);
         game.physics.arcade.collide(player,stoneGroup);
         game.physics.arcade.collide(player,groundLayer,null);
@@ -284,6 +295,7 @@ game.States.test=function(){
         //玩家恢复正常操作
         if((player.x<=20*50||player.x+player.width>=45*50)&&player.body.onFloor())
             resetConfig();
+        playerSpeed=player.reverseFlag?-Math.abs(playerSpeed):Math.abs(playerSpeed);
         // //绳子摆动方向
         if(ropeDir){
             chain.angle+=angleStep;
@@ -298,7 +310,6 @@ game.States.test=function(){
             if(rope.angle==-30)
                 ropeDir=true;
         }
-        playerSpeed=player.reverseFlag?-Math.abs(playerSpeed):Math.abs(playerSpeed);
         if(cursors.left.isDown){
             if(player.body.touching.down||player.body.onFloor()){
                 var move=player.reverseFlag?"rightMove":"leftMove";
@@ -311,7 +322,10 @@ game.States.test=function(){
                 player.body.velocity.x+=npcSpeed/2;
             if(beltLeftAction)
                 player.body.velocity.x-=npcSpeed/2;
-            player.stick=false;
+            if(player.isClimb){
+               // player.x=player.x<-13.5?-13.5:player.x;
+               // console.log(player.x);
+            }
         }else if(cursors.right.isDown){
             if(player.body.touching.down||player.body.onFloor()){
                 var move=player.reverseFlag?"leftMove":"rightMove";
@@ -324,7 +338,10 @@ game.States.test=function(){
                 player.body.velocity.x+=npcSpeed/2;
             if(beltLeftAction)
                 player.body.velocity.x-=npcSpeed/2;
-            player.stick=false;
+            if(player.isClimb){
+                //player.x=player.x>13.5?13.5:player.x;
+              //  console.log(player.x);
+            }
         }else{
             if(!player.isClimb){
                 player.animations.stop();
@@ -336,7 +353,6 @@ game.States.test=function(){
                 player.body.velocity.x+=npcSpeed/2;
             if(beltLeftAction)
                 player.body.velocity.x-=npcSpeed/2;
-            player.stick=true;
         };
         if(cursors.up.isDown){
             if(player.isClimb){
@@ -344,11 +360,12 @@ game.States.test=function(){
                 player.body.velocity.y=-playerSpeed;
                 //跳跃离开锁链
                 if(cursors.left.isDown||cursors.right.isDown){
+                    resetConfig();
                     if(!chainFlag){
                         player.parent=game.world;
                         player.x=player.previousPosition.x;
                         player.y=player.previousPosition.y;
-                        resetConfig();
+                        chainFlag=true;
                     }
                 }
             }
@@ -371,17 +388,10 @@ game.States.test=function(){
         };
         if(player.body.touching.down||player.body.onFloor()){
             beltStop=false;
-        };
-        //玩家爬锁位置锁定
-        if(player.isClimb&&chainFlag){
-            player.x=player.x-chain.x;
-            player.y=player.y-chain.y;
-            chain.add(player);
-            chainFlag=false;
         }
     };
     this.render=function () {
-        game.debug.spriteBounds(player);
+        // game.debug.spriteBounds(player);
         game.debug.spriteInfo(player, 32, 32,"black");
     };
     function gameOver(){
@@ -413,7 +423,6 @@ game.States.test=function(){
         player.reverseFlag=false;
         player.body.gravity.y=gravity;
         player.isClimb=false;
-        chainFlag=true;
     };
     function eleFactory(){
         if(stoneGroup!=undefined)

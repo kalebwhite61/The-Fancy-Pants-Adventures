@@ -256,9 +256,6 @@ game.States.test=function(){
         },this);
     };
     this.update =function () {
-        console.log();
-        // chain.angle+=1;
-        // chain.angle+=angleStep;
         //鲨鱼游泳
         Swim();
         //信息调试
@@ -267,18 +264,18 @@ game.States.test=function(){
         }
         if(game.input.keyboard.isDown(Phaser.Keyboard.T)){
             if(chainFlag&&!chain.contains(player)){
-                player.x=0;
                 player.y=0;
                 chain.add(player);
                 chainFlag=false;
             }
         }
         if(game.input.keyboard.isDown(Phaser.Keyboard.C)){
-            if(chain.contains(player)){
-                player.parent=game.world;
-                player.x=0;
-                player.y=player.previousPosition.y;
-            }
+            // if(chain.contains(player)){
+            //     player.parent=game.world;
+            //     player.x=0;
+            //     player.y=player.previousPosition.y;
+            // }
+            player.x=-13.5;
         }
         game.physics.arcade.collide(player,evilBoxGroup,reverseOperation);
         game.physics.arcade.collide(player,stoneGroup);
@@ -307,6 +304,9 @@ game.States.test=function(){
         }
 
         playerSpeed=player.reverseFlag?-Math.abs(playerSpeed):Math.abs(playerSpeed);
+        if(player.isClimb){
+            player.x=-13.5;
+        }
         if(cursors.left.isDown){
             if(player.body.touching.down||player.body.onFloor()){
                 var move=player.reverseFlag?"rightMove":"leftMove";
@@ -319,7 +319,7 @@ game.States.test=function(){
                 player.body.velocity.x+=npcSpeed/2;
             if(beltLeftAction)
                 player.body.velocity.x-=npcSpeed/2;
-            player.stick=false;
+
         }else if(cursors.right.isDown){
             if(player.body.touching.down||player.body.onFloor()){
                 var move=player.reverseFlag?"leftMove":"rightMove";
@@ -332,7 +332,6 @@ game.States.test=function(){
                 player.body.velocity.x+=npcSpeed/2;
             if(beltLeftAction)
                 player.body.velocity.x-=npcSpeed/2;
-            player.stick=false;
         }else{
             if(!player.isClimb){
                 player.animations.stop();
@@ -344,7 +343,6 @@ game.States.test=function(){
                 player.body.velocity.x+=npcSpeed/2;
             if(beltLeftAction)
                 player.body.velocity.x-=npcSpeed/2;
-            player.stick=true;
         };
         if(cursors.up.isDown){
             if(player.isClimb){
@@ -728,7 +726,6 @@ game.States.main = function() {
                 player.body.velocity.x+=playerSpeed/2;
             if(beltLeftAction)
                 player.body.velocity.x-=playerSpeed/2;
-            player.stick=false;
         }else if(cursors.right.isDown){
             if(player.body.touching.down||player.body.onFloor())
                 player.animations.play("rightMove",10,true);
@@ -739,7 +736,6 @@ game.States.main = function() {
                 player.body.velocity.x+=playerSpeed/2;
             if(beltLeftAction)
                 player.body.velocity.x-=playerSpeed/2;
-            player.stick=false;
         }else{
             player.animations.stop();
             if(playerMove)
@@ -749,7 +745,6 @@ game.States.main = function() {
                 player.body.velocity.x+=playerSpeed/2;
             if(beltLeftAction)
                 player.body.velocity.x-=playerSpeed/2;
-            player.stick=true;
         };
         if(cursors.up.isDown&&(player.body.touching.down||player.body.onFloor())){
             player.body.velocity.y=playerJump;
@@ -767,19 +762,6 @@ game.States.main = function() {
         if(obj2.movestyle=="vertical")
             obj1.body.velocity.y=obj2.movespeed;
         obj1.x+=obj2.x-obj2.previousPosition.x;
-    };
-    //玩家与绳子的碰撞检测
-    function tiltCollide(object,tilt){
-        var offsetX=Math.abs(object.x-tilt.x);
-        var offsetY=Math.abs(object.y-tilt.y);
-        if(offsetX<30&&offsetY<30&&object.stick) {
-            player.x = tilt.x-16;
-            player.y = tilt.y;
-            player.body.gravity.y=0;
-        }else{
-            player.body.gravity.y=gravity;
-        }
-
     };
     this.gameOver=function(){
         // player.kill();
