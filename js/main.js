@@ -252,9 +252,6 @@ game.States.test=function(){
         },this);
     };
     this.update =function () {
-        console.log();
-        // chain.angle+=1;
-        // chain.angle+=angleStep;
         //鲨鱼游泳
         Swim();
         //信息调试
@@ -273,8 +270,8 @@ game.States.test=function(){
                 player.parent=game.world;
                 player.x=player.previousPosition.x;
                 player.y=player.previousPosition.y;
+                chainFlag=false;
             }
-            chainFlag=false;
         }
         game.physics.arcade.collide(player,evilBoxGroup,reverseOperation);
         game.physics.arcade.collide(player,stoneGroup);
@@ -301,7 +298,6 @@ game.States.test=function(){
             if(rope.angle==-30)
                 ropeDir=true;
         }
-
         playerSpeed=player.reverseFlag?-Math.abs(playerSpeed):Math.abs(playerSpeed);
         if(cursors.left.isDown){
             if(player.body.touching.down||player.body.onFloor()){
@@ -348,14 +344,11 @@ game.States.test=function(){
                 player.body.velocity.y=-playerSpeed;
                 //跳跃离开锁链
                 if(cursors.left.isDown||cursors.right.isDown){
-                    resetConfig();
-                    player.body.velocity.y=playerJump;
-
                     if(!chainFlag){
                         player.parent=game.world;
                         player.x=player.previousPosition.x;
                         player.y=player.previousPosition.y;
-                        chainFlag=true;
+                        resetConfig();
                     }
                 }
             }
@@ -378,6 +371,13 @@ game.States.test=function(){
         };
         if(player.body.touching.down||player.body.onFloor()){
             beltStop=false;
+        };
+        //玩家爬锁位置锁定
+        if(player.isClimb&&chainFlag){
+            player.x=player.x-chain.x;
+            player.y=player.y-chain.y;
+            chain.add(player);
+            chainFlag=false;
         }
     };
     this.render=function () {
@@ -404,17 +404,6 @@ game.States.test=function(){
             obj1.body.velocity.y=obj2.movespeed;
         obj1.x+=obj2.x-obj2.previousPosition.x;
     };
-    function Test(chainPart){
-        var stick=game.physics.arcade.overlap(player,chainPart);
-        if(stick){
-            var pos={};
-            var index=chain.getIndex(chainPart);
-            pos.x=8;
-            pos.y=9;
-            //  console.log(index,"pos:",pos);
-            return true;
-        }
-    };
     function reverseOperation(obj){
         if(obj.previousPosition.y-obj.body.y<-1)
             obj.reverseFlag=!obj.reverseFlag;
@@ -424,6 +413,7 @@ game.States.test=function(){
         player.reverseFlag=false;
         player.body.gravity.y=gravity;
         player.isClimb=false;
+        chainFlag=true;
     };
     function eleFactory(){
         if(stoneGroup!=undefined)
