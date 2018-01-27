@@ -278,7 +278,12 @@ game.States.test=function(){
             if(chainFlag){
                 player.x=player.x-chain.x;
                 player.y=player.y-chain.y;
-                chain.add(player);
+                // 玩家未挂载锁链则执行组添加，如果不是则执行挂载对象替换
+                if(chain.hash.length==14){
+                    chain.add(player);
+                }else{
+                    player.parent=chain;
+                }
                 chainFlag=false;
             }else{
                 player.x=-13.5;
@@ -382,8 +387,6 @@ game.States.test=function(){
                 player.body.gravity.y=0;
                 player.body.velocity.y=0;
                 player.frame=13;
-            }else{
-                resetConfig();
             }
         };
         if(player.body.touching.down||player.body.onFloor()){
