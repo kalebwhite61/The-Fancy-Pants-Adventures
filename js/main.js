@@ -594,7 +594,7 @@ game.States.start = function() {
         setTimeout(function () {
             player.animations.add("startRun",[3,4,5,6,7]);
             player.animations.play("startRun",10,true);
-            playerRun=game.add.tween(player).to({x:700},3100,Phaser.Easing.Exponential.Out,true);
+            playerRun=game.add.tween(player).to({x:700},3050,Phaser.Easing.Exponential.Out,true);
             playerRun.onComplete.add(thisCreate.back,this);
         },1300);
     };
