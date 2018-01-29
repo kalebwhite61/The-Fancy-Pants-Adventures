@@ -136,7 +136,7 @@ game.States.test=function(){
         };
     }
     //锁链工厂
-    function createChain(pos,length,angleFlag,angleStep,angleRange){
+    function createChain(pos,angleFlag,length,angleStep,angleRange){
         var chain=game.add.group();
         this.length=length?length:7;
         Chain.call(chain,angleFlag,angleStep,angleRange);
@@ -155,6 +155,7 @@ game.States.test=function(){
         this.curDir=curDir;
         this.state="";
         this.isClimb=false;
+        this.curChain=null;
     };
     //NPC对象
     function NPC(){
@@ -163,17 +164,17 @@ game.States.test=function(){
     var stoneGroup,evilBoxGroup;
     var player,cursors,map,groundLayer,belt,belt2;
     var obstacleHorizontalMove,obstacleVerticalMove;
-    var playerSpeed=100;
+    var playerSpeed=150;
     var npcSpeed=100;
-    var playerJump=-175;
+    var playerJump=-275;
     var gravity=250;
     var playerMove=false;
     var beltStop=true;
-    var sPos=52;
+    var sPos=45;
     var water;
     var shark;
     var sharkSpeed=100;
-    var chain,chain1;
+    var chain,chain1,chain2,chain3;
     var chainX=50;
 
     this.create = function() {
@@ -181,11 +182,11 @@ game.States.test=function(){
         game.physics.startSystem(Phaser.Physics.ARCADE);
         //启动页面背景色
         game.stage.backgroundColor="#ff9";
-
         //锁链配置
         chain=createChain(chainX);
-        chain1=createChain(chainX+6,3,false);
-
+        chain1=createChain(chainX+6,false);
+        chain2=createChain(chainX+12);
+        chain3=createChain(chainX+18,false);
         //玩家物理引擎配置
         player=game.add.sprite(sPos*50,game.world.height-170,"playerwalk",2);
         player.alpha=1;
@@ -259,13 +260,13 @@ game.States.test=function(){
         water.animations.add('waves7', [28, 29, 30, 31, 30, 29]);
         var n = 7;                                                               //设置海水颜色
         water.animations.play('waves' + n, 8, true);
-
         //键盘监听事件
         cursors=game.input.keyboard.createCursorKeys();
         initAnimation.onComplete.add(function () {
             player.frame=0;
             playerMove=true;
         },this);
+        //实时文字调试信息
     };
     this.update =function () {
         //鲨鱼游泳
@@ -282,23 +283,24 @@ game.States.test=function(){
             }
         }
         if(game.input.keyboard.isDown(Phaser.Keyboard.C)){
-            console.log(chain.rotation);
+           // console.log(chain.rotation);
+            console.log(player.curChain);
         }
         //玩家爬锁位置刷新
         if(player.isClimb){
-            if(chain.chainFlag){
-                chain.chainPos=chain.curDir;
-                player.x=chain.chainPos?player.x-chain.x:player.x-chain.x-player.width;
-                player.y=player.y-chain.y;
+            if(player.curChain.chainFlag){
+                player.curChain.chainPos=!player.curDir;
+                player.x=player.curChain.chainPos?player.x-player.curChain.x:player.x-player.curChain.x-player.width;
+                player.y=player.y-player.curChain.y;
                 // 玩家未挂载锁链则执行组添加，如果不是则执行挂载对象替换
-                if(chain.hash.length==14){
-                    chain.add(player);
+                if(player.curChain.hash.length==14){
+                    player.curChain.add(player);
                 }else{
-                    player.parent=chain;
+                    player.parent=player.curChain;
                 }
-                chain.chainFlag=false;
+                player.curChain.chainFlag=false;
             }
-            player.x=chain.chainPos?-13.5:13.5;
+            player.x=player.curChain.chainPos?-13.5:13.5;
             player.y=player.y>0?player.y:0;
         }
         game.physics.arcade.collide(player,evilBoxGroup,reverseOperation);
@@ -306,7 +308,9 @@ game.States.test=function(){
         game.physics.arcade.collide(player,groundLayer,null);
         game.physics.arcade.collide(player,obstacleHorizontalMove,syncMove);
         game.physics.arcade.collide(player,obstacleVerticalMove,syncMove);
-        player.isClimb=game.physics.arcade.overlap(player,chain,climbChain);
+        game.physics.arcade.overlap(player,chain,climbChain);
+        game.physics.arcade.overlap(player,chain1,climbChain);
+
         var beltAction=game.physics.arcade.collide(player,belt);
         var beltLeftAction=game.physics.arcade.collide(player,belt2);
         //玩家恢复正常操作
@@ -316,6 +320,8 @@ game.States.test=function(){
         //锁链移动
         chain.chainMove();
         chain1.chainMove();
+        chain2.chainMove();
+        chain3.chainMove();
         //玩家移动控制
         if(cursors.left.isDown){
             player.curDir=true;
@@ -363,9 +369,9 @@ game.States.test=function(){
             if(beltLeftAction)
                 player.body.velocity.x-=npcSpeed/2;
         };
-        var moveStyle=chain.chainPos?"climb":"climbR";
         if(cursors.up.isDown){
             if(player.isClimb) {
+                var moveStyle=chain.chainPos?"climb":"climbR";
                 player.animations.play(moveStyle, 6, true);
                 player.body.velocity.y = -playerSpeed;
                 //跳跃离开锁链
@@ -376,6 +382,7 @@ game.States.test=function(){
                 player.body.velocity.y=playerJump;
         }else if(cursors.down.isDown) {
             if(player.isClimb) {
+                var moveStyle=chain.chainPos?"climb":"climbR";
                 player.body.velocity.y=-playerJump;
                 player.animations.play(moveStyle,6,true);
                 if(player.y>=275)
@@ -386,7 +393,7 @@ game.States.test=function(){
                 player.animations.stop("climb");
                 player.body.gravity.y=0;
                 player.body.velocity.y=0;
-                player.frame=chain.chainPos?13:16;
+                player.frame=player.curChain.chainPos?13:16;
             }
         };
         if(player.body.touching.down||player.body.onFloor()){
@@ -397,6 +404,7 @@ game.States.test=function(){
     this.render=function () {
         // game.debug.spriteBounds(player);
        // game.debug.spriteInfo(player, 32, 32,"black");
+      //  chainChildren.x=player.x;
     };
     //游戏结束
     function gameOver(){
@@ -412,17 +420,19 @@ game.States.test=function(){
         resetConfig();
     };
     //爬锁链
-    function climbChain(){
-        player.isClimb=true;
+    function climbChain(obj1,obj2){
+        obj1.isClimb=true;
+        obj1.curChain=obj2.parent;
     };
     //离开锁链
     function leaveChain(){
         resetConfig();
-        if(!chain.chainFlag){
+        if(!player.curChain.chainFlag){
             player.parent=game.world;
             player.x=player.previousPosition.x;
             player.y=player.previousPosition.y;
-            chain.chainFlag=true;
+            player.curChain.chainFlag=true;
+            player.curChain={};
         }
     }
     //滑块同步移动
