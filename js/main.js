@@ -310,6 +310,8 @@ game.States.test=function(){
         game.physics.arcade.collide(player,obstacleVerticalMove,syncMove);
         game.physics.arcade.overlap(player,chain,climbChain);
         game.physics.arcade.overlap(player,chain1,climbChain);
+        game.physics.arcade.overlap(player,chain2,climbChain);
+        game.physics.arcade.overlap(player,chain3,climbChain);
 
         var beltAction=game.physics.arcade.collide(player,belt);
         var beltLeftAction=game.physics.arcade.collide(player,belt2);
