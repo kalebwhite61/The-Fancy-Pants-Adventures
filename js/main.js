@@ -45,9 +45,9 @@ game.States.preload = function() {
         game.load.tilemap("mapone","assets/map/ground.json",null, Phaser.Tilemap.TILED_JSON);
     };
     this.create = function() {
-        game.state.start('start');
+       // game.state.start('start');
         // game.state.start('main');
-        //game.state.start('test');
+        game.state.start('test');
     };
 };
 //P2引擎测试页面
@@ -112,11 +112,43 @@ game.States.test=function(){
         this.moveFlag= moveFlag;
     };
     //锁链对象
-    function Chain(){
+    function Chain(angleFlag,angleStep,angleRange){
         this.chainFlag=true;//true与锁链第一次接触
         this.chainPos=true;//true第一次判断玩家人物和锁链位置
+        this.curDir=true;
+        this.angleFlag=angleFlag==null?true:angleFlag;
+        this.angleStep=angleStep?angleStep:0.5;
+        this.angleRange=angleRange?angleRange:30;
+        this.chainMove=function(){
+            //锁链摆动方向
+            if(this.angleFlag){
+                this.angle+=this.angleStep;
+                this.curDir=true;
+                if(this.angle>=this.angleRange){
+                    this.angleFlag=false;
+                    this.curDir=false;
+                }
+            }else{
+                this.angle-=this.angleStep;
+                if(this.angle<=-this.angleRange)
+                    this.angleFlag=true;
+            }
+        };
     }
-    //对象扩展属性
+    //锁链工厂
+    function createChain(pos,length,angleFlag,angleStep,angleRange){
+        var chain=game.add.group();
+        this.length=length?length:7;
+        Chain.call(chain,angleFlag,angleStep,angleRange);
+        chain.enableBody=true;
+        chain.position={x:pos*50,y:200};
+        for(var i=0;i<this.length;i++){
+            chain.create(0,(i*2+1)*20,"chain",0).anchor.setTo(0.5,0);
+            chain.create(0,i*40,"chain",1).anchor.setTo(0.5,0);
+        }
+        return chain;
+    }
+    //玩家精灵扩展属性
     function Character(flag,speed,curDir){
         this.reverseFlag=flag;
         this.speed=speed;
@@ -129,7 +161,7 @@ game.States.test=function(){
 
     };
     var stoneGroup,evilBoxGroup;
-    var player,cursors,map,groundLayer,belt,belt2,rope;
+    var player,cursors,map,groundLayer,belt,belt2;
     var obstacleHorizontalMove,obstacleVerticalMove;
     var playerSpeed=100;
     var npcSpeed=100;
@@ -137,13 +169,11 @@ game.States.test=function(){
     var gravity=250;
     var playerMove=false;
     var beltStop=true;
-    var ropeDir=true;
-    var angleStep=0.5;
-    var sPos=0;
+    var sPos=52;
     var water;
     var shark;
     var sharkSpeed=100;
-    var chain;
+    var chain,chain1;
     var chainX=50;
 
     this.create = function() {
@@ -152,26 +182,13 @@ game.States.test=function(){
         //启动页面背景色
         game.stage.backgroundColor="#ff9";
 
-        //锁链
-        chain=game.add.group();
-        Chain.call(chain);
-        chain.enableBody=true;
-        chain.position={x:chainX*50,y:200};
-        for(var i=0;i<7;i++){
-            chain.create(0,(i*2+1)*20,"chain",0).anchor.setTo(0.5,0);
-            chain.create(0,i*40,"chain",1).anchor.setTo(0.5,0);
-        }
+        //锁链配置
+        chain=createChain(chainX);
+        chain1=createChain(chainX+6,3,false);
 
-        var chain1=game.add.group();
-        chain1.enableBody=true;
-        chain1.position={x:(chainX+6)*50,y:200};
-        for(var i=0;i<7;i++){
-            chain1.create(0,(i*2+1)*20,"chain",0).anchor.setTo(0.5,0);
-            chain1.create(0,i*40,"chain",1).anchor.setTo(0.5,0);
-        }
         //玩家物理引擎配置
         player=game.add.sprite(sPos*50,game.world.height-170,"playerwalk",2);
-        // player.alpha=0;
+        player.alpha=1;
         Character.call(player,false);      //扩展玩家属性
         game.physics.arcade.enable(player);
         player.body.collideWorldBounds=true;
@@ -201,11 +218,11 @@ game.States.test=function(){
         //水平移动障碍物集包括后障碍阶梯续会出现的
         obstacleHorizontalMove=game.add.group();
         obstacleHorizontalMove.enableBody=true;
-        var obstacleGround=obstacleHorizontalMove.create(40*50,game.world.height-100,"movebar");
+        var obstacleGround=obstacleHorizontalMove.create(39*50,game.world.height-100,"movebar");
         obstacleGround.movestyle="horizontal";
         obstacleGround.body.immovable=true;
         for(var i=0;i<obstacleHorizontalMove.length;i++)
-            game.add.tween(obstacleHorizontalMove.getChildAt(i)).to({x:43*50},2000,null,true,0,-1,true);
+            game.add.tween(obstacleHorizontalMove.getChildAt(i)).to({x:42*50},2000,null,true,0,-1,true);
 
         //第二梯队障碍，传送带与反操作evil
         belt=game.add.sprite(21*50,10*50,"s-belt",0);                            //第一传送带
@@ -242,10 +259,6 @@ game.States.test=function(){
         water.animations.add('waves7', [28, 29, 30, 31, 30, 29]);
         var n = 7;                                                               //设置海水颜色
         water.animations.play('waves' + n, 8, true);
-        //摆动的绳子
-        rope=game.add.sprite(52*50,200,"s-rope");
-        rope.anchor.setTo(0.5,0);
-        rope.alpha=0;
 
         //键盘监听事件
         cursors=game.input.keyboard.createCursorKeys();
@@ -300,23 +313,10 @@ game.States.test=function(){
         if((player.x<=20*50||player.x+player.width>=45*50)&&player.body.onFloor())
             resetConfig();
         playerSpeed=player.reverseFlag?-Math.abs(playerSpeed):Math.abs(playerSpeed);
-        // //绳子摆动方向
-        if(ropeDir){
-            chain.angle+=angleStep;
-            chain.curDir=true;
-            //chain1.angle+=angleStep;
-            rope.angle+=angleStep;
-            if(rope.angle==30){
-                ropeDir=false;
-                chain.curDir=false;
-            }
-        }else{
-            chain.angle-=angleStep;
-            // chain1.angle+=angleStep;
-            rope.angle-=angleStep;
-            if(rope.angle==-30)
-                ropeDir=true;
-        }
+        //锁链移动
+        chain.chainMove();
+        chain1.chainMove();
+        //玩家移动控制
         if(cursors.left.isDown){
             player.curDir=true;
             if(player.body.touching.down||player.body.onFloor()){
@@ -393,25 +393,29 @@ game.States.test=function(){
             beltStop=false;
         }
     };
+    //测试信息渲染
     this.render=function () {
         // game.debug.spriteBounds(player);
        // game.debug.spriteInfo(player, 32, 32,"black");
     };
+    //游戏结束
     function gameOver(){
         var reviveX=player.x;
         if(reviveX<18*50){
             player.x=350;
             player.y=250;
-        }else if(reviveX<44*50){
+        }else if(reviveX<=45*50){
             player.x=18*50+25;
             player.y=10*50;
         };
         eleFactory();
         resetConfig();
     };
+    //爬锁链
     function climbChain(){
         player.isClimb=true;
     };
+    //离开锁链
     function leaveChain(){
         resetConfig();
         if(!chain.chainFlag){
@@ -421,11 +425,13 @@ game.States.test=function(){
             chain.chainFlag=true;
         }
     }
+    //滑块同步移动
     function syncMove(obj1,obj2) {
         if(obj2.movestyle=="vertical")
             obj1.body.velocity.y=obj2.movespeed;
         obj1.x+=obj2.x-obj2.previousPosition.x;
     };
+    //玩家操作置反
     function reverseOperation(obj){
         if(obj.previousPosition.y-obj.body.y<-1)
             obj.reverseFlag=!obj.reverseFlag;
@@ -436,6 +442,7 @@ game.States.test=function(){
         player.body.gravity.y=gravity;
         player.isClimb=false;
     };
+    //产生可下落stone
     function eleFactory(){
         if(stoneGroup!=undefined)
             stoneGroup.destroy();
@@ -449,6 +456,7 @@ game.States.test=function(){
         stoneGroup.create(34*50,7*50,"stone",6);
         stoneGroup.create(36*50,9*50,"stone",6);
     };
+    //鲨鱼撕咬前半程
     function Attack(){
         shark.state="up";
         shark.speed=0;
@@ -461,6 +469,7 @@ game.States.test=function(){
         game.time.events.add(350,sharkJump,this);
         game.time.events.add(900,waterDrop,this);
     };
+    //鲨鱼撕咬后半程
     function attackDown(){
         shark.state="down";
         var ackDistance=shark.curDir=="right"?shark.x+2*50:shark.x-2*50;
@@ -470,13 +479,16 @@ game.States.test=function(){
         game.time.events.add(300,waterDrop,this);
         shark.frame=shark.curDir=="left"?3:0;
     };
+    //鲨鱼跳跃状态
     function sharkJump(){
         shark.animations.stop();
         shark.frame=shark.curDir=="left"?2:1;
     };
+    //鲨鱼恢复游泳
     function reSwim(){
         shark.speed=sharkSpeed;
     };
+    //鲨鱼游泳
     function Swim(){
         if(shark.x>=57*50) {
             shark.curDir="left";
@@ -492,6 +504,7 @@ game.States.test=function(){
             shark.body.velocity.x=shark.speed;
         }
     };
+    //水花效果
     function waterDrop(){
         var waterDropX;
         if(shark.state=="up")
