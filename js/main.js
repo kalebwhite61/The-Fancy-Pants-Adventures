@@ -292,12 +292,7 @@ game.States.test=function(){
                 player.curChain.chainPos=!player.curDir;
                 player.x=player.curChain.chainPos?player.x-player.curChain.x:player.x-player.curChain.x-player.width;
                 player.y=player.y-player.curChain.y;
-                // 玩家未挂载锁链则执行组添加，如果不是则执行挂载对象替换
-                if(player.curChain.hash.length==14){
-                    player.curChain.add(player);
-                }else{
-                    player.parent=player.curChain;
-                }
+                player.parent=player.curChain;
                 player.curChain.chainFlag=false;
             }
             player.x=player.curChain.chainPos?-13.5:13.5;
