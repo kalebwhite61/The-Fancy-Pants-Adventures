@@ -166,7 +166,7 @@ game.States.test=function(){
     var obstacleHorizontalMove,obstacleVerticalMove;
     var playerSpeed=150;
     var npcSpeed=100;
-    var playerJump=-275;
+    var playerJump=-175;
     var gravity=250;
     var playerMove=false;
     var beltStop=true;
@@ -368,7 +368,7 @@ game.States.test=function(){
         };
         if(cursors.up.isDown){
             if(player.isClimb) {
-                var moveStyle=chain.chainPos?"climb":"climbR";
+                var moveStyle=player.curChain.chainPos?"climb":"climbR";
                 player.animations.play(moveStyle, 6, true);
                 player.body.velocity.y = -playerSpeed;
                 //跳跃离开锁链
@@ -379,7 +379,7 @@ game.States.test=function(){
                 player.body.velocity.y=playerJump;
         }else if(cursors.down.isDown) {
             if(player.isClimb) {
-                var moveStyle=chain.chainPos?"climb":"climbR";
+                var moveStyle=player.curChain.chainPos?"climb":"climbR";
                 player.body.velocity.y=-playerJump;
                 player.animations.play(moveStyle,6,true);
                 if(player.y>=275)
