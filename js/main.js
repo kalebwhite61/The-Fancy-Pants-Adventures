@@ -45,7 +45,7 @@ game.States.preload = function() {
         game.load.tilemap("mapone","assets/map/ground.json",null, Phaser.Tilemap.TILED_JSON);
     };
     this.create = function() {
-       // game.state.start('start');
+      // game.state.start('start');
         // game.state.start('main');
         game.state.start('test');
     };
@@ -164,7 +164,7 @@ game.States.test=function(){
     var stoneGroup,evilBoxGroup;
     var player,cursors,map,groundLayer,belt,belt2;
     var obstacleHorizontalMove,obstacleVerticalMove;
-    var playerSpeed=150;
+    var playerSpeed=100;
     var npcSpeed=100;
     var playerJump=-175;
     var gravity=250;
@@ -174,8 +174,10 @@ game.States.test=function(){
     var water;
     var shark;
     var sharkSpeed=100;
-    var chain,chain1,chain2,chain3;
+    var chain,chain1,chain2,chain3,chainTest;
     var chainX=50;
+    var FLAG=true;
+    var chainPart;
 
     this.create = function() {
         //开启物理引擎
@@ -187,6 +189,8 @@ game.States.test=function(){
         chain1=createChain(chainX+6,false);
         chain2=createChain(chainX+12);
         chain3=createChain(chainX+18,false);
+        chainTest=createChain(chainX-2);
+        chainTest.y=32;
         //玩家物理引擎配置
         player=game.add.sprite(sPos*50,game.world.height-170,"playerwalk",2);
         player.alpha=1;
@@ -269,22 +273,65 @@ game.States.test=function(){
         //实时文字调试信息
     };
     this.update =function () {
+        if(player.x>47*50)
+            playerSpeed=150;
         //鲨鱼游泳
         Swim();
         //信息调试
         if(game.input.keyboard.isDown(Phaser.Keyboard.SPACEBAR)){
-            Attack();
+            //Attack();
+            if(FLAG){
+                chainTest.moveUp(chainTest.getChildAt(13));
+                FLAG=false;
+                console.log("Move up ...");
+            }
+
+        }
+        if(game.input.keyboard.isDown(Phaser.Keyboard.G)){
+            console.log(chainTest);
+        }
+        if(game.input.keyboard.isDown(Phaser.Keyboard.U)){
+           if(!FLAG){
+               // chainPart.y=0;
+               // chainPart.x=-10;
+               chainPart.body.gravity.y=0;
+               chainPart.body.velocity.y=0;
+               chainPart.parent=chainTest;
+               chainPart.y=0;
+               chainPart.x=-10;
+               console.log(" chain added back...");
+               FLAG=true;
+           }
         }
         if(game.input.keyboard.isDown(Phaser.Keyboard.T)){
-            if(!chain.contains(player)){
-                player.x=0;
-                player.y=0;
-                chain.add(player);
+            if(!FLAG)
+                console.log(chainTest);
+            FLAG=true;
+        }
+        if(game.input.keyboard.isDown(Phaser.Keyboard.R)){
+            if(!FLAG){
+                //chainTest.getFirstDead().alive=true;
+                console.log(chainTest.getFirstDead());
+                console.log("chainTest:",chainTest);
+                console.log("dead:",chainTest.countDead());
+                console.log("living:",chainTest.countLiving());
             }
+            FLAG=true;
         }
         if(game.input.keyboard.isDown(Phaser.Keyboard.C)){
-           // console.log(chain.rotation);
-            console.log(player.curChain);
+           if(FLAG){
+               var amount=chainTest.countLiving();
+               chainTest.removeBetween(amount-2,amount-1,true,true);
+               // chainTest.getChildAt(amount-1).kill();
+               // chainTest.getChildAt(amount-2).kill();
+               //chainPart=chainTest.getChildAt(--length);
+               // chainPart.parent=game.world;
+               // chainPart.x=chainPart.previousPosition.x;
+               // chainPart.y=chainPart.previousPosition.y;
+               // chainPart.body.gravity.y=400;
+               console.log("Drop...");
+               FLAG=false;
+           }
         }
         //玩家爬锁位置刷新
         if(player.isClimb){
@@ -315,7 +362,7 @@ game.States.test=function(){
             resetConfig();
         playerSpeed=player.reverseFlag?-Math.abs(playerSpeed):Math.abs(playerSpeed);
         //锁链移动
-        chain.chainMove();
+        // chain.chainMove();
         chain1.chainMove();
         chain2.chainMove();
         chain3.chainMove();
