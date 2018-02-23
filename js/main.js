@@ -143,8 +143,12 @@ game.States.test=function(){
         chain.enableBody=true;
         chain.position={x:pos*50,y:200};
         for(var i=0;i<this.length;i++){
-            chain.create(0,(i*2+1)*20,"chain",0).anchor.setTo(0.5,0);
-            chain.create(0,i*40,"chain",1).anchor.setTo(0.5,0);
+           var chainPart1=chain.create(0,(i*2+1)*20,"chain",0);
+           var chainPart2=chain.create(0,i*40,"chain",1);
+           chainPart1.anchor.setTo(0.5,0);
+           chainPart1.body.immovable=true;
+           chainPart2.anchor.setTo(0.5,0);
+           chainPart2.body.immovable=true;
         }
         return chain;
     }
@@ -161,6 +165,7 @@ game.States.test=function(){
     function NPC(){
 
     };
+    var bottomGroup,topGroup;
     var stoneGroup,evilBoxGroup;
     var player,cursors,map,groundLayer,belt,belt2;
     var obstacleHorizontalMove,obstacleVerticalMove;
@@ -184,13 +189,16 @@ game.States.test=function(){
         game.physics.startSystem(Phaser.Physics.ARCADE);
         //启动页面背景色
         game.stage.backgroundColor="#ff9";
+        //创建显示层级
+        bottomGroup=game.add.group();
+        topGroup=game.add.group();
         //锁链配置
         chain=createChain(chainX);
         chain1=createChain(chainX+6,false);
         chain2=createChain(chainX+12);
         chain3=createChain(chainX+18,false);
-        chainTest=createChain(chainX-2);
-        chainTest.y=32;
+        chainTest=createChain(chainX-3);
+        chainTest.y=220;
         //玩家物理引擎配置
         player=game.add.sprite(sPos*50,game.world.height-170,"playerwalk",2);
         player.alpha=1;
@@ -210,6 +218,7 @@ game.States.test=function(){
 
         //地图资源加载
         map = game.add.tilemap('mapone');
+        topGroup.game.addChild(map);
         map.addTilesetImage('groundSet', 'tile');
         groundLayer = map.createLayer('gameGround');
         //根据地图大小，重新设置游戏世界大小
@@ -285,24 +294,8 @@ game.States.test=function(){
                 FLAG=false;
                 console.log("Move up ...");
             }
-
         }
-        if(game.input.keyboard.isDown(Phaser.Keyboard.G)){
-            console.log(chainTest);
-        }
-        if(game.input.keyboard.isDown(Phaser.Keyboard.U)){
-           if(!FLAG){
-               // chainPart.y=0;
-               // chainPart.x=-10;
-               chainPart.body.gravity.y=0;
-               chainPart.body.velocity.y=0;
-               chainPart.parent=chainTest;
-               chainPart.y=0;
-               chainPart.x=-10;
-               console.log(" chain added back...");
-               FLAG=true;
-           }
-        }
+        //链条信息打印，重置可裁剪参数
         if(game.input.keyboard.isDown(Phaser.Keyboard.T)){
             if(!FLAG)
                 console.log(chainTest);
@@ -310,25 +303,50 @@ game.States.test=function(){
         }
         if(game.input.keyboard.isDown(Phaser.Keyboard.R)){
             if(!FLAG){
-                //chainTest.getFirstDead().alive=true;
-                console.log(chainTest.getFirstDead());
-                console.log("chainTest:",chainTest);
-                console.log("dead:",chainTest.countDead());
                 console.log("living:",chainTest.countLiving());
             }
+           // console.log(chainTest.getChildAt(11));
             FLAG=true;
         }
+        //隐藏链条
+        if(game.input.keyboard.isDown(Phaser.Keyboard.H)){
+            // var part1=chainTest.getChildAt(12).alpha=0;
+            // var part2=chainTest.getChildAt(13).alpha=0;
+            if(FLAG) {
+                var pos={x:0,y:0};
+                pos.x=chainTest.position.x;
+                // pos.y=chainTest.position.y+chainTest.height;
+                console.log("result:",(16-chainTest.hash.length)/2);
+                pos.y=chainTest.bottom-46-40*((14-chainTest.hash.length)/2);
+                chainDown(pos);
+                console.log("child in hash :",chainTest.hash.length);
+                for (var i = chainTest.hash.length-2; i <=chainTest.hash.length; i++) {
+                    chainTest.getChildAt(i).alpha = 0;
+                    chainTest.removeFromHash(chainTest.getChildAt(i));
+                    // chainTest.getChildAt(i).alive=false; error...
+                }
+                FLAG=false;
+                console.log("hide...");
+            }
+        }
+        //显示链条
+        if(game.input.keyboard.isDown(Phaser.Keyboard.S)){
+            // chainTest.getChildAt(12).alpha=1;
+            // chainTest.getChildAt(13).alpha=1;
+            if(!FLAG){
+                // for(var i=12;i<14;i++){
+                //     chainTest.getChildAt(i).alpha=1;
+                //     chainTest.addToHash(chainTest.getChildAt(i));
+                // }
+                console.log("show...");
+                FLAG=true;
+            }
+        }
+        //裁剪链条
         if(game.input.keyboard.isDown(Phaser.Keyboard.C)){
            if(FLAG){
-               var amount=chainTest.countLiving();
+              var amount=chainTest.countLiving();
                chainTest.removeBetween(amount-2,amount-1,true,true);
-               // chainTest.getChildAt(amount-1).kill();
-               // chainTest.getChildAt(amount-2).kill();
-               //chainPart=chainTest.getChildAt(--length);
-               // chainPart.parent=game.world;
-               // chainPart.x=chainPart.previousPosition.x;
-               // chainPart.y=chainPart.previousPosition.y;
-               // chainPart.body.gravity.y=400;
                console.log("Drop...");
                FLAG=false;
            }
@@ -354,6 +372,9 @@ game.States.test=function(){
         game.physics.arcade.overlap(player,chain1,climbChain);
         game.physics.arcade.overlap(player,chain2,climbChain);
         game.physics.arcade.overlap(player,chain3,climbChain);
+
+        //链条碰撞测试
+        game.physics.arcade.collide(player,chainTest,climbTest);
 
         var beltAction=game.physics.arcade.collide(player,belt);
         var beltLeftAction=game.physics.arcade.collide(player,belt2);
@@ -447,7 +468,7 @@ game.States.test=function(){
     //测试信息渲染
     this.render=function () {
         // game.debug.spriteBounds(player);
-       // game.debug.spriteInfo(player, 32, 32,"black");
+       // game.debug.spriteInfo(chainTest, 32, 32,"black");
       //  chainChildren.x=player.x;
     };
     //游戏结束
@@ -574,6 +595,23 @@ game.States.test=function(){
         emitter.minParticleSpeed.setTo(-95, -10);
         emitter.maxParticleSpeed.setTo(95, -70);
         emitter.start(true, 500, 80,80);
+    };
+    function  climbTest(){
+        console.log("Collide...");
+    }
+    //链条下落效果
+    function chainDown(pos){
+        var chainDownPart=game.add.group();
+        bottomGroup.game.addChild(chainDownPart);
+        chainDownPart.enableBody=true;
+        chainDownPart.position={x:pos.x,y:pos.y};
+        var partDownPartOne=chainDownPart.create(0,20,"chain",0);
+        var partDownPartTwo=chainDownPart.create(0,0,"chain",1);
+        partDownPartOne.anchor.setTo(0.5,0);
+        partDownPartOne.body.gravity.y=300;
+        partDownPartTwo.anchor.setTo(0.5,0);
+        partDownPartTwo.body.gravity.y=300;
+        console.log("chainDown...");
     }
 }
 //开始页面
