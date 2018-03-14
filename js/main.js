@@ -179,10 +179,9 @@ game.States.test=function(){
     var water;
     var shark;
     var sharkSpeed=100;
-    var chain,chain1,chain2,chain3,chainTest;
+    var chain,chain1,chain2,chain3;
     var chainX=50;
     var FLAG=true;
-    var chainPart;
 
     this.create = function() {
         //开启物理引擎
@@ -197,10 +196,11 @@ game.States.test=function(){
         chain1=createChain(chainX+6,false);
         chain2=createChain(chainX+12);
         chain3=createChain(chainX+18,false);
-        chainTest=createChain(chainX-3);
-        chainTest.y=220;
+        // chainTest=createChain(chainX-5);
+        // chainTest.y=220;
         //玩家物理引擎配置
         player=game.add.sprite(sPos*50,game.world.height-170,"playerwalk",2);
+        bottomGroup.add(player);
         player.alpha=1;
         Character.call(player,false);      //扩展玩家属性
         game.physics.arcade.enable(player);
@@ -218,7 +218,6 @@ game.States.test=function(){
 
         //地图资源加载
         map = game.add.tilemap('mapone');
-        topGroup.game.addChild(map);
         map.addTilesetImage('groundSet', 'tile');
         groundLayer = map.createLayer('gameGround');
         //根据地图大小，重新设置游戏世界大小
@@ -237,7 +236,6 @@ game.States.test=function(){
         obstacleGround.body.immovable=true;
         for(var i=0;i<obstacleHorizontalMove.length;i++)
             game.add.tween(obstacleHorizontalMove.getChildAt(i)).to({x:42*50},2000,null,true,0,-1,true);
-
         //第二梯队障碍，传送带与反操作evil
         belt=game.add.sprite(21*50,10*50,"s-belt",0);                            //第一传送带
         belt.animations.add("belt_move");
@@ -257,12 +255,15 @@ game.States.test=function(){
 
         //第三梯队障碍,大海与鲨鱼
         shark=game.add.sprite(48*50,game.world.height-70,'shark',0);               //鲨鱼引入
+        shark.attackFlag=true;
+        bottomGroup.add(shark);
         Character.apply(shark,[false,sharkSpeed,"right"]);
         shark.animations.add("rAttack",[0,1]);
         shark.animations.add('lAttack',[3,2]);
         game.physics.arcade.enable(shark);
 
         water = game.add.tileSprite(48*50,game.world.height-65,23*50, 80, 'waters');
+        topGroup.add(water);
         water.animations.add('waves0', [0, 1, 2, 3, 2, 1]);
         water.animations.add('waves1', [4, 5, 6, 7, 6, 5]);
         water.animations.add('waves2', [8, 9, 10, 11, 10, 9]);
@@ -284,47 +285,50 @@ game.States.test=function(){
     this.update =function () {
         if(player.x>47*50)
             playerSpeed=150;
+        if(player.previousPosition.x>48*50&&player.previousPosition.x<71*50&&player.previousPosition.y>505)
+        {
+            gameOver();
+        }
         //鲨鱼游泳
         Swim();
+        //鲨鱼袭击
+        Attack();
         //信息调试
         if(game.input.keyboard.isDown(Phaser.Keyboard.SPACEBAR)){
-            //Attack();
+            console.log(player.y);
             if(FLAG){
-                chainTest.moveUp(chainTest.getChildAt(13));
                 FLAG=false;
-                console.log("Move up ...");
+                // console.log("Move up ...");
+                // Attack();
+                // console.log(shark);
+                console.log("Attack...");
+                console.log(player.previousPosition.x);
             }
         }
         //链条信息打印，重置可裁剪参数
         if(game.input.keyboard.isDown(Phaser.Keyboard.T)){
-            if(!FLAG)
-                console.log(chainTest);
-            FLAG=true;
+            // if(!FLAG)
+            //     console.log(chainTest);
+            // FLAG=true;
+            // console.log("chain pos :",chain.getChildAt(13).position);
+            // console.log("chain info :",chain);
+            // console.log("left:",chain.left,"right:",chain.right,"bottom",chain.bottom);
+            if(FLAG){
+                // console.log("Info:",chain.getChildAt(13));
+                // console.log("Info:",chain.getChildAt(13).previ);
+                FLAG=false;
+            }
         }
         if(game.input.keyboard.isDown(Phaser.Keyboard.R)){
             if(!FLAG){
-                console.log("living:",chainTest.countLiving());
             }
            // console.log(chainTest.getChildAt(11));
             FLAG=true;
         }
         //隐藏链条
         if(game.input.keyboard.isDown(Phaser.Keyboard.H)){
-            // var part1=chainTest.getChildAt(12).alpha=0;
-            // var part2=chainTest.getChildAt(13).alpha=0;
             if(FLAG) {
-                var pos={x:0,y:0};
-                pos.x=chainTest.position.x;
-                // pos.y=chainTest.position.y+chainTest.height;
-                console.log("result:",(16-chainTest.hash.length)/2);
-                pos.y=chainTest.bottom-46-40*((14-chainTest.hash.length)/2);
-                chainDown(pos);
-                console.log("child in hash :",chainTest.hash.length);
-                for (var i = chainTest.hash.length-2; i <=chainTest.hash.length; i++) {
-                    chainTest.getChildAt(i).alpha = 0;
-                    chainTest.removeFromHash(chainTest.getChildAt(i));
-                    // chainTest.getChildAt(i).alive=false; error...
-                }
+                Attack(chain);
                 FLAG=false;
                 console.log("hide...");
             }
@@ -334,22 +338,10 @@ game.States.test=function(){
             // chainTest.getChildAt(12).alpha=1;
             // chainTest.getChildAt(13).alpha=1;
             if(!FLAG){
-                // for(var i=12;i<14;i++){
-                //     chainTest.getChildAt(i).alpha=1;
-                //     chainTest.addToHash(chainTest.getChildAt(i));
-                // }
+
                 console.log("show...");
                 FLAG=true;
             }
-        }
-        //裁剪链条
-        if(game.input.keyboard.isDown(Phaser.Keyboard.C)){
-           if(FLAG){
-              var amount=chainTest.countLiving();
-               chainTest.removeBetween(amount-2,amount-1,true,true);
-               console.log("Drop...");
-               FLAG=false;
-           }
         }
         //玩家爬锁位置刷新
         if(player.isClimb){
@@ -374,7 +366,7 @@ game.States.test=function(){
         game.physics.arcade.overlap(player,chain3,climbChain);
 
         //链条碰撞测试
-        game.physics.arcade.collide(player,chainTest,climbTest);
+        // game.physics.arcade.collide(player,chainTest);
 
         var beltAction=game.physics.arcade.collide(player,belt);
         var beltLeftAction=game.physics.arcade.collide(player,belt2);
@@ -382,8 +374,8 @@ game.States.test=function(){
         if((player.x<=20*50||player.x+player.width>=45*50)&&player.body.onFloor())
             resetConfig();
         playerSpeed=player.reverseFlag?-Math.abs(playerSpeed):Math.abs(playerSpeed);
-        //锁链移动
-        // chain.chainMove();
+        //锁链摆动
+        chain.chainMove();
         chain1.chainMove();
         chain2.chainMove();
         chain3.chainMove();
@@ -450,7 +442,7 @@ game.States.test=function(){
                 var moveStyle=player.curChain.chainPos?"climb":"climbR";
                 player.body.velocity.y=-playerJump;
                 player.animations.play(moveStyle,6,true);
-                if(player.y>=275)
+                if(player.previousPosition.y>=player.curChain.getChildAt(player.curChain.hash.length-1).previousPosition.y+40)
                     leaveChain();
             }
         }else {
@@ -473,13 +465,20 @@ game.States.test=function(){
     };
     //游戏结束
     function gameOver(){
-        var reviveX=player.x;
+        var reviveX=player.previousPosition.x;
         if(reviveX<18*50){
             player.x=350;
             player.y=250;
         }else if(reviveX<=45*50){
             player.x=18*50+25;
             player.y=10*50;
+        }else if(player.previousPosition.x>48*50&&player.previousPosition.x<71*50){
+            player.x=47*50;
+            player.y=500;
+            chainReset(chain);
+            chainReset(chain1);
+            chainReset(chain2);
+            chainReset(chain3);
         };
         eleFactory();
         resetConfig();
@@ -497,7 +496,7 @@ game.States.test=function(){
             player.x=player.previousPosition.x;
             player.y=player.previousPosition.y;
             player.curChain.chainFlag=true;
-            player.curChain={};
+            player.curChain=null;
         }
     }
     //滑块同步移动
@@ -516,6 +515,7 @@ game.States.test=function(){
         player.reverseFlag=false;
         player.body.gravity.y=gravity;
         player.isClimb=false;
+        player.parent=game.world;
     };
     //产生可下落stone
     function eleFactory(){
@@ -533,19 +533,38 @@ game.States.test=function(){
     };
     //鲨鱼撕咬前半程
     function Attack(){
-        shark.state="up";
-        shark.speed=0;
-        var ackDistance=shark.curDir=="right"?shark.x+2*50:shark.x-2*50;
-        var ackAngle=shark.curDir=="right"?-5:5;
-        var ackDir=shark.curDir=="right"?"rAttack":"lAttack";
-        var sharkAttack=game.add.tween(shark).to({x:ackDistance,y:game.world.height-230,angle:ackAngle},1000,Phaser.Easing.Elastic.In,true,0);
-        sharkAttack.onComplete.add(attackDown,this);
-        shark.animations.play(ackDir,8,true);
-        game.time.events.add(350,sharkJump,this);
-        game.time.events.add(900,waterDrop,this);
+        // if(shark.attackFlag&&player.curChain){
+        //     if(shark.y-player.previousPosition.y<=250){
+        //         shark.attackFlag=true;
+        //     }else{
+        //         shark.attackFlag=false;
+        //     }
+        // }
+        if(player.previousPosition.x>48*50&&(shark.y-player.previousPosition.y<=250)&&(shark.curDir=="left"&&((shark.x-player.previousPosition.x<=50)&&(shark.x-player.previousPosition.x>=0))||shark.curDir=="right"&&((player.previousPosition.x-shark.x<=50)&&(player.previousPosition.x-shark.x>=0)))&&shark.attackFlag){
+            shark.state="up";
+            shark.speed=0;
+            var ackDistance=shark.curDir=="right"?shark.x+2*50:shark.x-2*50;
+            var ackAngle=shark.curDir=="right"?-5:5;
+            var ackDir=shark.curDir=="right"?"rAttack":"lAttack";
+            var sharkAttack=game.add.tween(shark).to({x:ackDistance,y:game.world.height-230,angle:ackAngle},1000,Phaser.Easing.Elastic.In,true,0);
+            sharkAttack.onComplete.add(attackDown);
+            shark.animations.play(ackDir,8,true);
+            game.time.events.add(350,sharkJump,this);
+            game.time.events.add(900,waterDrop,this);
+            shark.attackFlag=false;
+        }
     };
     //鲨鱼撕咬后半程
     function attackDown(){
+        console.log("player curChain:",player.curChain);
+        //console.log(player.curChain);
+        if(player.curChain!=null)
+            chainCrack(player.curChain);
+        else
+            console.log("chain is false");
+        // if(player.curChain!={})
+        //     chainCrack(player.curChain);
+       // chainCrack(player.curChain);
         shark.state="down";
         var ackDistance=shark.curDir=="right"?shark.x+2*50:shark.x-2*50;
         var ackAngle=0;
@@ -553,6 +572,8 @@ game.States.test=function(){
         sharkAttackDown.onComplete.add(reSwim,this);
         game.time.events.add(300,waterDrop,this);
         shark.frame=shark.curDir=="left"?3:0;
+        if(shark.y-player.previousPosition.y<30)
+            gameOver();
     };
     //鲨鱼跳跃状态
     function sharkJump(){
@@ -562,10 +583,11 @@ game.States.test=function(){
     //鲨鱼恢复游泳
     function reSwim(){
         shark.speed=sharkSpeed;
+        shark.attackFlag=true;
     };
     //鲨鱼游泳
     function Swim(){
-        if(shark.x>=57*50) {
+        if(shark.x>=68*50) {
             shark.curDir="left";
             shark.frame = 3;
         }
@@ -588,7 +610,6 @@ game.States.test=function(){
             waterDropX=shark.centerX;
         var emitter = game.add.emitter(waterDropX,game.world.height-45);
         emitter.makeParticles('waterdrop');
-        //emitter.angularDrag=100;
         emitter.minParticleScale = 0.1;
         emitter.maxParticleScale = 0.8;
         emitter.setAlpha(0, 1,1200);
@@ -596,13 +617,22 @@ game.States.test=function(){
         emitter.maxParticleSpeed.setTo(95, -70);
         emitter.start(true, 500, 80,80);
     };
-    function  climbTest(){
-        console.log("Collide...");
+    //链条下落水花
+    function chainDropWater(waterDropX){
+        console.log("waterDropX",waterDropX);
+        var emitter = game.add.emitter(waterDropX,game.world.height-45);
+        emitter.makeParticles('waterdrop');
+        emitter.minParticleScale = 0.1;
+        emitter.maxParticleScale = 0.8;
+        emitter.setAlpha(0, 1,1000);
+        emitter.minParticleSpeed.setTo(-55, -10);
+        emitter.maxParticleSpeed.setTo(55, -60);
+        emitter.start(true, 400, 50,50);
     }
     //链条下落效果
     function chainDown(pos){
         var chainDownPart=game.add.group();
-        bottomGroup.game.addChild(chainDownPart);
+        bottomGroup.add(chainDownPart);
         chainDownPart.enableBody=true;
         chainDownPart.position={x:pos.x,y:pos.y};
         var partDownPartOne=chainDownPart.create(0,20,"chain",0);
@@ -612,6 +642,30 @@ game.States.test=function(){
         partDownPartTwo.anchor.setTo(0.5,0);
         partDownPartTwo.body.gravity.y=300;
         console.log("chainDown...");
+    }
+    //链条被咬掉的效果
+    function chainCrack(chain){
+        console.log("chainCrack is done ...");
+        var pos={x:0,y:0};
+        pos.x=chain.getChildAt(chain.hash.length-1).previousPosition.x;
+        setTimeout(function(){
+            chainDropWater(pos.x);
+        },300*(16-chain.hash.length)/2);
+        pos.y=chain.bottom-46-40*((14-chain.hash.length)/2);
+        chainDown(pos);
+        for (var i = chain.hash.length-2; i <=chain.hash.length; i++) {
+            chain.getChildAt(i).alpha = 0;
+            chain.removeFromHash(chain.getChildAt(i));
+        }
+    }
+    //链条恢复
+    function chainReset(chain) {
+        for(var i=0;i<14;i++){
+            if(chain.getChildAt(i).alpha==0){
+                chain.getChildAt(i).alpha=1;
+                chain.addToHash(chain.getChildAt(i));
+            }
+        }
     }
 }
 //开始页面
