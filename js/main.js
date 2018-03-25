@@ -32,11 +32,15 @@ game.States.preload = function() {
         game.load.spritesheet('waters', 'assets/waters.png', 32, 400, 32);
         game.load.spritesheet('shark','assets/shark.png',150,92);
         game.load.spritesheet('chain','assets/chain.png',16,26);
+        game.load.spritesheet("peas","assets/pea.png",71,71);
+        game.load.spritesheet("fireball","assets/fireball.png",56,34);
         game.load.image("startBtn","assets/startBtn.png",173,38);
         game.load.image("tree","assets/tree.png",142,156);
         game.load.image("dusty","assets/dusty.png",64,30);
         game.load.image("ground","assets/platform.png",400,32);
         game.load.image("movebar","assets/movebar.png",150,33);
+        game.load.image("movebar1","assets/movebar2.png",100,33);
+        game.load.image("movebar2","assets/movebar3.png",75,33);
         game.load.image("waterdrop","assets/rain.png",17,17);
         game.load.image("rope","assets/rope.png",10,480);
         game.load.image("s-rope","assets/s-rope.png",10,240);
@@ -45,9 +49,9 @@ game.States.preload = function() {
         game.load.tilemap("mapone","assets/map/ground.json",null, Phaser.Tilemap.TILED_JSON);
     };
     this.create = function() {
-      // game.state.start('start');
+      game.state.start('start');
         // game.state.start('main');
-        game.state.start('test');
+        // game.state.start('test');
     };
 };
 //P2引擎测试页面
@@ -168,21 +172,22 @@ game.States.test=function(){
     var bottomGroup,topGroup;
     var stoneGroup,evilBoxGroup;
     var player,cursors,map,groundLayer,belt,belt2;
-    var obstacleHorizontalMove,obstacleVerticalMove;
+    var obstacleHorizontalMove,obstacleVerticalMove,moveStone;
     var playerSpeed=100;
     var npcSpeed=100;
     var playerJump=-175;
     var gravity=250;
     var playerMove=false;
     var beltStop=true;
-    var sPos=45;
+    var sPos=71;
     var water;
     var shark;
     var sharkSpeed=100;
     var chain,chain1,chain2,chain3;
     var chainX=50;
     var FLAG=true;
-
+    var moveStoneChild1,moveStoneChild2,moveStoneChild3,moveStoneChild4,moveStoneChild5,moveStoneChild6;
+    var pea,fireball;
     this.create = function() {
         //开启物理引擎
         game.physics.startSystem(Phaser.Physics.ARCADE);
@@ -198,6 +203,14 @@ game.States.test=function(){
         chain3=createChain(chainX+18,false);
         // chainTest=createChain(chainX-5);
         // chainTest.y=220;
+        //豌豆射手
+        pea=game.add.sprite((sPos+4)*50,200,"peas",0);
+        pea.animations.add("peas",[0,1,2,3,4,5,6,7,8,9,10,11,12]);
+        pea.play("peas",5,true);//豌豆射手攻击
+        //豌豆火球
+        fireball=game.add.sprite((sPos+2)*50,200,"fireball",0);
+        fireball.animations.add("fireball");
+        fireball.play("fireball",6,true);
         //玩家物理引擎配置
         player=game.add.sprite(sPos*50,game.world.height-170,"playerwalk",2);
         bottomGroup.add(player);
@@ -274,6 +287,41 @@ game.States.test=function(){
         water.animations.add('waves7', [28, 29, 30, 31, 30, 29]);
         var n = 7;                                                               //设置海水颜色
         water.animations.play('waves' + n, 8, true);
+
+        //第四梯队，移动块大翻越
+        moveStone=game.add.group();
+        moveStone.enableBody=true;
+        moveStone.position={x:70*50,y:0};
+        //移动块类型展示
+        moveStoneChild1=moveStone.create(150,500,"movebar");
+        moveStoneChild1.movestyle="horizontal";
+        moveStoneChild1.body.immovable=true;
+        game.add.tween(moveStoneChild1).to({x:250},2000,null,true,0,-1,true);
+
+        moveStoneChild2=moveStone.create(450,460,"movebar1");
+        moveStoneChild2.movestyle="vertical";
+        moveStoneChild2.body.immovable=true;
+        game.add.tween(moveStoneChild2).to({y:350},2000,null,true,0,-1,true);
+
+        moveStoneChild3=moveStone.create(630,330,"movebar2");
+        moveStoneChild3.movestyle="vertical";
+        moveStoneChild3.body.immovable=true;
+        game.add.tween(moveStoneChild3).to({y:450},2000,null,true,0,-1,true);
+
+        moveStoneChild4=moveStone.create(750,300,"movebar1");
+        moveStoneChild4.movestyle="horizontal";
+        moveStoneChild4.body.immovable=true;
+        game.add.tween(moveStoneChild4).to({x:850},2000,null,true,0,-1,true);
+
+        moveStoneChild5=moveStone.create(1070,270,"movebar2");
+        moveStoneChild5.movestyle="vertical";
+        moveStoneChild5.body.immovable=true;
+        game.add.tween(moveStoneChild5).to({y:470},3500,null,true,0,-1,true);
+
+        moveStoneChild6=moveStone.create(1200,500,"movebar");
+        moveStoneChild6.movestyle="horizontal";
+        moveStoneChild6.body.immovable=true;
+
         //键盘监听事件
         cursors=game.input.keyboard.createCursorKeys();
         initAnimation.onComplete.add(function () {
@@ -360,11 +408,16 @@ game.States.test=function(){
         game.physics.arcade.collide(player,groundLayer,null);
         game.physics.arcade.collide(player,obstacleHorizontalMove,syncMove);
         game.physics.arcade.collide(player,obstacleVerticalMove,syncMove);
+        game.physics.arcade.collide(player,moveStoneChild1,syncMove);
+        game.physics.arcade.collide(player,moveStoneChild2,syncMove);
+        game.physics.arcade.collide(player,moveStoneChild3,syncMove);
+        game.physics.arcade.collide(player,moveStoneChild4,syncMove);
+        game.physics.arcade.collide(player,moveStoneChild5,syncMove);
+        game.physics.arcade.collide(player,moveStoneChild6);
         game.physics.arcade.overlap(player,chain,climbChain);
         game.physics.arcade.overlap(player,chain1,climbChain);
         game.physics.arcade.overlap(player,chain2,climbChain);
         game.physics.arcade.overlap(player,chain3,climbChain);
-
         //链条碰撞测试
         // game.physics.arcade.collide(player,chainTest);
 
@@ -502,8 +555,9 @@ game.States.test=function(){
     //滑块同步移动
     function syncMove(obj1,obj2) {
         if(obj2.movestyle=="vertical")
-            obj1.body.velocity.y=obj2.movespeed;
-        obj1.x+=obj2.x-obj2.previousPosition.x;
+            obj1.body.velocity.y=100;
+        obj1.x+=obj2.deltaX;
+        obj1.y+=obj2.deltaY;
     };
     //玩家操作置反
     function reverseOperation(obj){
@@ -818,15 +872,15 @@ game.States.main = function() {
         // for(var i=0;i<obstacleHorizontalMove.length;i++)
         //     game.add.tween(obstacleHorizontalMove.getChildAt(i)).to({x:150},2000,null,true,0,-1,true);
         // //垂直移动障碍物集
-        // obstacleVerticalMove=game.add.group();
-        // obstacleVerticalMove.enableBody=true;
-        // var obstacleGround1=obstacleVerticalMove.create(550,game.world.height-108,"ground");
-        // obstacleGround1.movestyle="vertical";//扩展对象属性，添加移动方式为垂直运动
-        // obstacleGround1.movespeed=70;//扩展对象属性，添加移动速度
-        // obstacleGround1.body.immovable=true;
-        // for(var i=0;i<obstacleVerticalMove.length;i++)
-        //     game.add.tween(obstacleVerticalMove.getChildAt(i)).to({y:400},2000,null,true,0,-1,true);
-        //
+        obstacleVerticalMove=game.add.group();
+        obstacleVerticalMove.enableBody=true;
+        var obstacleGround1=obstacleVerticalMove.create(550,game.world.height-108,"ground");
+        obstacleGround1.movestyle="vertical";//扩展对象属性，添加移动方式为垂直运动
+        obstacleGround1.movespeed=70;//扩展对象属性，添加移动速度
+        obstacleGround1.body.immovable=true;
+        for(var i=0;i<obstacleVerticalMove.length;i++)
+            game.add.tween(obstacleVerticalMove.getChildAt(i)).to({y:400},2000,null,true,0,-1,true);
+
         //传送带动画
         belt=game.add.sprite(game.world.width/2-200,game.world.height-64,"belt",0);
         belt.animations.add("belt_move");
@@ -933,8 +987,8 @@ game.States.main = function() {
         //     tiltCollide(player,rope.getBounds().bottomRight);
     };
     this.syncMove=function (obj1,obj2) {
-        if(obj2.movestyle=="vertical")
-            obj1.body.velocity.y=obj2.movespeed;
+        // if(obj2.movestyle=="vertical")
+        //     obj1.body.velocity.y=7;
         obj1.x+=obj2.x-obj2.previousPosition.x;
     };
     //玩家与绳子的碰撞检测
