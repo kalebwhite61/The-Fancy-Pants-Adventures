@@ -49,9 +49,9 @@ game.States.preload = function() {
         game.load.tilemap("mapone","assets/map/ground.json",null, Phaser.Tilemap.TILED_JSON);
     };
     this.create = function() {
-      game.state.start('start');
+      // game.state.start('start');
         // game.state.start('main');
-        // game.state.start('test');
+        game.state.start('test');
     };
 };
 //P2引擎测试页面
@@ -164,6 +164,7 @@ game.States.test=function(){
         this.state="";
         this.isClimb=false;
         this.curChain=null;
+        this.fireFlag=false;
     };
     //NPC对象
     function NPC(){
@@ -187,7 +188,7 @@ game.States.test=function(){
     var chainX=50;
     var FLAG=true;
     var moveStoneChild1,moveStoneChild2,moveStoneChild3,moveStoneChild4,moveStoneChild5,moveStoneChild6;
-    var pea,fireball;
+    var pea,bullets,fireTime=1000;
     this.create = function() {
         //开启物理引擎
         game.physics.startSystem(Phaser.Physics.ARCADE);
@@ -203,16 +204,9 @@ game.States.test=function(){
         chain3=createChain(chainX+18,false);
         // chainTest=createChain(chainX-5);
         // chainTest.y=220;
-        //豌豆射手
-        pea=game.add.sprite((sPos+4)*50,200,"peas",0);
-        pea.animations.add("peas",[0,1,2,3,4,5,6,7,8,9,10,11,12]);
-        pea.play("peas",5,true);//豌豆射手攻击
-        //豌豆火球
-        fireball=game.add.sprite((sPos+2)*50,200,"fireball",0);
-        fireball.animations.add("fireball");
-        fireball.play("fireball",6,true);
+
         //玩家物理引擎配置
-        player=game.add.sprite(sPos*50,game.world.height-170,"playerwalk",2);
+        player=game.add.sprite((sPos)*50,game.world.height-170,"playerwalk",2);
         bottomGroup.add(player);
         player.alpha=1;
         Character.call(player,false);      //扩展玩家属性
@@ -298,7 +292,7 @@ game.States.test=function(){
         moveStoneChild1.body.immovable=true;
         game.add.tween(moveStoneChild1).to({x:250},2000,null,true,0,-1,true);
 
-        moveStoneChild2=moveStone.create(450,460,"movebar1");
+        moveStoneChild2=moveStone.create(490,460,"movebar1");
         moveStoneChild2.movestyle="vertical";
         moveStoneChild2.body.immovable=true;
         game.add.tween(moveStoneChild2).to({y:350},2000,null,true,0,-1,true);
@@ -322,15 +316,34 @@ game.States.test=function(){
         moveStoneChild6.movestyle="horizontal";
         moveStoneChild6.body.immovable=true;
 
+        //豌豆射手
+        pea=game.add.sprite(91*50+10,205,"peas",0);
+        game.physics.arcade.enable(pea);
+        pea.body.immovable=true;
+        pea.animations.add("peas",[0,1,2,3,4,5,6,7,8,9,10,11,12]);
+        pea.play("peas",5,true);
+        game.add.tween(pea).to({y:405},3500,null,true,0,-1,true);
+        //豌豆火球
+        bullets=game.add.group();
+        bullets.enableBody = true;
+        bullets.createMultiple(30,"fireball",0);
+        bullets.setAll('outOfBoundsKill', true);
+        bullets.setAll('checkWorldBounds', true);
+
         //键盘监听事件
         cursors=game.input.keyboard.createCursorKeys();
         initAnimation.onComplete.add(function () {
             player.frame=0;
             playerMove=true;
         },this);
-        //实时文字调试信息
     };
     this.update =function () {
+        //火球发射
+        if(player.x>73*50+2&&player.x<73*50+10)
+            player.fireFlag=true;
+        if(player.fireFlag)
+            fire();
+
         if(player.x>47*50)
             playerSpeed=150;
         if(player.previousPosition.x>48*50&&player.previousPosition.x<71*50&&player.previousPosition.y>505)
@@ -343,15 +356,17 @@ game.States.test=function(){
         Attack();
         //信息调试
         if(game.input.keyboard.isDown(Phaser.Keyboard.SPACEBAR)){
-            console.log(player.y);
-            if(FLAG){
-                FLAG=false;
-                // console.log("Move up ...");
-                // Attack();
-                // console.log(shark);
-                console.log("Attack...");
-                console.log(player.previousPosition.x);
-            }
+            pea.revive();
+            console.log("Hello");
+            // console.log(player.y);
+            // if(FLAG){
+            //     FLAG=false;
+            //     // console.log("Move up ...");
+            //     // Attack();
+            //     // console.log(shark);
+            //     console.log("Attack...");
+            //     console.log(player.previousPosition.x);
+            // }
         }
         //链条信息打印，重置可裁剪参数
         if(game.input.keyboard.isDown(Phaser.Keyboard.T)){
@@ -418,6 +433,8 @@ game.States.test=function(){
         game.physics.arcade.overlap(player,chain1,climbChain);
         game.physics.arcade.overlap(player,chain2,climbChain);
         game.physics.arcade.overlap(player,chain3,climbChain);
+        game.physics.arcade.overlap(player,bullets,fireAttack);
+        game.physics.arcade.collide(player,pea,peaAttack);
         //链条碰撞测试
         // game.physics.arcade.collide(player,chainTest);
 
@@ -491,6 +508,8 @@ game.States.test=function(){
             if(player.body.touching.down||player.body.onFloor())
                 player.body.velocity.y=playerJump;
         }else if(cursors.down.isDown) {
+            if(player.x>73*50&&player.x<96*50)
+                player.body.velocity.y+=20;
             if(player.isClimb) {
                 var moveStyle=player.curChain.chainPos?"climb":"climbR";
                 player.body.velocity.y=-playerJump;
@@ -525,13 +544,21 @@ game.States.test=function(){
         }else if(reviveX<=45*50){
             player.x=18*50+25;
             player.y=10*50;
-        }else if(player.previousPosition.x>48*50&&player.previousPosition.x<71*50){
+        }else if(reviveX>48*50&&reviveX<71*50){
             player.x=47*50;
             player.y=500;
             chainReset(chain);
             chainReset(chain1);
             chainReset(chain2);
             chainReset(chain3);
+        }else if(reviveX>73*50&&reviveX<96*50){
+            player.x=72*50;
+            player.y=500;
+            player.fireFlag=false;
+            bullets.forEachAlive(function(child){
+                child.kill();
+            });
+            pea.revive();
         };
         eleFactory();
         resetConfig();
@@ -554,8 +581,9 @@ game.States.test=function(){
     }
     //滑块同步移动
     function syncMove(obj1,obj2) {
-        if(obj2.movestyle=="vertical")
-            obj1.body.velocity.y=100;
+        if(obj2.movestyle=="vertical"){
+            obj1.body.velocity.y=50;
+        }
         obj1.x+=obj2.deltaX;
         obj1.y+=obj2.deltaY;
     };
@@ -682,7 +710,7 @@ game.States.test=function(){
         emitter.minParticleSpeed.setTo(-55, -10);
         emitter.maxParticleSpeed.setTo(55, -60);
         emitter.start(true, 400, 50,50);
-    }
+    };
     //链条下落效果
     function chainDown(pos){
         var chainDownPart=game.add.group();
@@ -696,7 +724,7 @@ game.States.test=function(){
         partDownPartTwo.anchor.setTo(0.5,0);
         partDownPartTwo.body.gravity.y=300;
         console.log("chainDown...");
-    }
+    };
     //链条被咬掉的效果
     function chainCrack(chain){
         console.log("chainCrack is done ...");
@@ -711,7 +739,7 @@ game.States.test=function(){
             chain.getChildAt(i).alpha = 0;
             chain.removeFromHash(chain.getChildAt(i));
         }
-    }
+    };
     //链条恢复
     function chainReset(chain) {
         for(var i=0;i<14;i++){
@@ -719,6 +747,30 @@ game.States.test=function(){
                 chain.getChildAt(i).alpha=1;
                 chain.addToHash(chain.getChildAt(i));
             }
+        }
+    };
+    function fire(){
+        var bullet = bullets.getFirstExists(false);
+        var timeSpan=6000*Math.random();
+        if(bullet&&(game.time.now>fireTime)) {
+            fireTime=game.time.now+timeSpan;
+            bullet.reset(pea.position.x-40, pea.position.y);
+            bullet.scale.setTo(0.8,0.8);
+            bullet.body.velocity.x = -250;
+            bullet.animations.add("fireball");
+            bullet.play("fireball",6,true);
+        }
+    };
+    function fireAttack(){
+        gameOver();
+    }
+    function peaAttack(obj1,obj2){
+        if(obj1.x>obj2.x&&obj1.x<obj2.x+obj2.width){
+            obj2.kill();
+            bullets.forEachAlive(function(child){
+                child.kill();
+            });
+            obj1.fireFlag=false;
         }
     }
 }
@@ -839,7 +891,7 @@ game.States.main = function() {
     var player,cursors,map,groundLayer,belt,belt2,rope,trap;
     var obstacleHorizontalMove,obstacleVerticalMove;
     var playerSpeed=100;
-    var playerJump=-175;
+    var playerJump=-200;
     var gravity=250;
     var playerMove=false;
     var beltStop=true;
