@@ -47,11 +47,17 @@ game.States.preload = function() {
         //地图资源加载
         game.load.image("tile","assets/map/tileset.png");
         game.load.tilemap("mapone","assets/map/ground.json",null, Phaser.Tilemap.TILED_JSON);
+        //骨骼动画
+        game.load.image('dragon_image', 'assets/skeleton/dragon_atlas.png');
+        game.load.json('dragon_atlas', 'assets/skeleton/dragon_atlas.json');
+        game.load.atlas('atlas1', 'assets/skeleton/dragon_atlas.png', 'assets/skeleton/dragon_atlas.json');
+        game.load.json('dragon', 'assets/skeleton/dragon_skeleton.json');
     };
     this.create = function() {
       // game.state.start('start');
         // game.state.start('main');
         game.state.start('test');
+
     };
 };
 //P2引擎测试页面
@@ -180,7 +186,7 @@ game.States.test=function(){
     var gravity=250;
     var playerMove=false;
     var beltStop=true;
-    var sPos=71;
+    var sPos=104;
     var water;
     var shark;
     var sharkSpeed=100;
@@ -189,6 +195,7 @@ game.States.test=function(){
     var FLAG=true;
     var moveStoneChild1,moveStoneChild2,moveStoneChild3,moveStoneChild4,moveStoneChild5,moveStoneChild6;
     var pea,bullets,fireTime=1000;
+    var dragon;
     this.create = function() {
         //开启物理引擎
         game.physics.startSystem(Phaser.Physics.ARCADE);
@@ -330,6 +337,18 @@ game.States.test=function(){
         bullets.setAll('outOfBoundsKill', true);
         bullets.setAll('checkWorldBounds', true);
 
+        //第五梯队小龙骨骼动画
+        dragon=addDragonBones();
+
+        dragon.scale.x=0.5;
+        dragon.scale.y=0.5;
+        // game.time.events.loop(20, update, this);
+        dragon.x=(sPos+7)*50;
+        dragon.y=game.world.height-55;
+        game.physics.arcade.enable(dragon);
+        dragon.enableBody=true;
+        game.add.tween(dragon).to({x:107*50},3500,null,true,0,-1,true);
+
         //键盘监听事件
         cursors=game.input.keyboard.createCursorKeys();
         initAnimation.onComplete.add(function () {
@@ -338,8 +357,10 @@ game.States.test=function(){
         },this);
     };
     this.update =function () {
+        dragonBones.animation.WorldClock.clock.advanceTime(0.02);
+
         //火球发射
-        if(player.x>73*50+2&&player.x<73*50+10)
+        if(((player.x>73*50+2&&player.x<73*50+10)||(player.x>96*50+2&&player.x<96*50+10))&&pea.alive)
             player.fireFlag=true;
         if(player.fireFlag)
             fire();
@@ -435,6 +456,7 @@ game.States.test=function(){
         game.physics.arcade.overlap(player,chain3,climbChain);
         game.physics.arcade.overlap(player,bullets,fireAttack);
         game.physics.arcade.collide(player,pea,peaAttack);
+        game.physics.arcade.collide(player,dragon);
         //链条碰撞测试
         // game.physics.arcade.collide(player,chainTest);
 
@@ -772,6 +794,68 @@ game.States.test=function(){
             });
             obj1.fireFlag=false;
         }
+    }
+    function addDragonBones(){
+
+        //give dragonBones a reference to the game object
+        dragonBones.game = game;
+
+        // hardcoded ids for the dragonBones elements to target
+        var armatureName = "Dragon";//PigDragonBones";
+        var skeletonId = "Dragon";//piggy";
+        var animationId = "walk";//run";
+        // fetch the skeletonData from cache
+        var skeletonJSON = game.cache.getJSON('dragon');
+        // fetch the atlas data from cache
+        var atlasJson = game.cache.getJSON('dragon_atlas');
+        // make an array listing the names of which images to use from the atlas
+        //var partsList = ["arm_front", "head_ninja", "body", "fore_leg", "rear_leg", "rear arm"];
+        var partsList = [
+            "armL.png",
+            "armR.png",
+            "armUpperL.png",
+            "armUpperR.png",
+            "beardL.png",
+            "beardR.png",
+            "body.png",
+            "clothes1.png",
+            "eyeL.png",
+            "eyeR.png",
+            "hair.png",
+            "handL.png",
+            "handR.png",
+            "head.png",
+            "legL.png",
+            "legR.png",
+            "tail.png",
+            "tailTip.png"
+        ];
+        // fetch the atlas image
+        var texture = game.cache.getImage("dragon_image");
+        // and the atlas id
+        var atlasId = 'atlas1';
+        // pass the variables all through to a utility method to generate the dragonBones armature
+
+        var config = {
+            armatureName: armatureName,
+            skeletonId: skeletonId,
+            animationId: animationId,
+            atlasId: atlasId,
+            partsList: partsList
+        };
+
+        var armature = dragonBones.makeArmaturePhaser(config, skeletonJSON, atlasJson, texture);
+
+
+        //var armature = dragonBones.makePhaserArmature(armatureName, skeletonId, animationId, skeletonData, atlasJson, texture, partsList, atlasId);
+        // get the root display object from the armature
+        var bonesBase = armature.getDisplay();
+        // position it
+        bonesBase.x = 300;
+        bonesBase.y = 500;
+        // add it to the display list
+        game.world.add(bonesBase);
+        return bonesBase;
     }
 }
 //开始页面
